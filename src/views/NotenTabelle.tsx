@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Trash2, Edit, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit, FileText, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { NotenspaltenTyp, Note } from '@/types';
 import { getCurrentDate } from '@/db';
@@ -82,6 +82,12 @@ export function NotenTabelle() {
   const [noteDatum, setNoteDatum] = useState(getCurrentDate());
   const [noteKommentar, setNoteKommentar] = useState('');
   const [editNote, setEditNote] = useState<Note | null>(null);
+
+  // Sammel-Noteneingabe State
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkSpalteId, setBulkSpalteId] = useState('');
+  const [bulkDatum, setBulkDatum] = useState(getCurrentDate());
+  const [bulkNoten, setBulkNoten] = useState<Record<string, string>>({});
 
   const aktuelleSchueler = schueler
     .filter(s => s.fachId === aktuellesFachId)
@@ -159,6 +165,55 @@ export function NotenTabelle() {
       deleteNote(editNote.id);
       setNoteDialogOpen(false);
     }
+  };
+
+  const openBulkDialog = (spalteId?: string) => {
+    const selectedSpalte = spalteId || (aktuelleSpalten.length > 0 ? aktuelleSpalten[0].id : '');
+    setBulkSpalteId(selectedSpalte);
+    setBulkDatum(getCurrentDate());
+    // Vorhandene Noten laden
+    const existingNoten: Record<string, string> = {};
+    aktuelleSchueler.forEach(s => {
+      const note = noten.find(n => n.schuelerId === s.id && n.notenspalteId === selectedSpalte);
+      if (note) {
+        existingNoten[s.id] = note.wert.toString();
+      }
+    });
+    setBulkNoten(existingNoten);
+    setBulkDialogOpen(true);
+  };
+
+  const handleBulkSpalteChange = (spalteId: string) => {
+    setBulkSpalteId(spalteId);
+    // Vorhandene Noten für diese Spalte laden
+    const existingNoten: Record<string, string> = {};
+    aktuelleSchueler.forEach(s => {
+      const note = noten.find(n => n.schuelerId === s.id && n.notenspalteId === spalteId);
+      if (note) {
+        existingNoten[s.id] = note.wert.toString();
+      }
+    });
+    setBulkNoten(existingNoten);
+  };
+
+  const handleBulkSave = () => {
+    if (!bulkSpalteId) return;
+
+    Object.entries(bulkNoten).forEach(([schuelerId, wertStr]) => {
+      if (wertStr === 'none' || wertStr === '') return;
+      const wert = Number(wertStr);
+      if (wert >= 1 && wert <= 6) {
+        const existingNote = noten.find(n => n.schuelerId === schuelerId && n.notenspalteId === bulkSpalteId);
+        if (existingNote) {
+          updateNote(existingNote.id, wert, bulkDatum, existingNote.kommentar);
+        } else {
+          addNote(schuelerId, bulkSpalteId, wert, bulkDatum, '');
+        }
+      }
+    });
+
+    setBulkDialogOpen(false);
+    setBulkNoten({});
   };
 
   const getNoteForCell = (schuelerId: string, spalteId: string) => {
@@ -305,6 +360,92 @@ export function NotenTabelle() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Sammel-Noteneingabe */}
+        {aktuelleSpalten.length > 0 && aktuelleSchueler.length > 0 && (
+          <Dialog open={bulkDialogOpen} onOpenChange={(open) => {
+            if (open) openBulkDialog();
+            else setBulkDialogOpen(false);
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="default">
+                <Users className="h-5 w-5 mr-2" />
+                Sammel-Noteneingabe
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Sammel-Noteneingabe</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-base">Notenspalte</Label>
+                    <Select value={bulkSpalteId} onValueChange={handleBulkSpalteChange}>
+                      <SelectTrigger className="text-base">
+                        <SelectValue placeholder="Spalte wählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {aktuelleSpalten.map(spalte => (
+                          <SelectItem key={spalte.id} value={spalte.id} className="text-base">
+                            {spalte.visibleName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-48 space-y-2">
+                    <Label className="text-base">Datum</Label>
+                    <Input
+                      type="date"
+                      value={bulkDatum}
+                      onChange={e => setBulkDatum(e.target.value)}
+                      className="text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/50">
+                      <TableHead className="text-base font-semibold">Schüler</TableHead>
+                      <TableHead className="w-32 text-center text-base font-semibold">Note</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aktuelleSchueler.map(s => (
+                      <TableRow key={s.id}>
+                        <TableCell className="text-base font-medium">
+                          {s.nachname}, {s.vorname}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="6"
+                            value={bulkNoten[s.id] || ''}
+                            onChange={e => setBulkNoten(prev => ({ ...prev, [s.id]: e.target.value }))}
+                            className="text-base w-20 mx-auto text-center"
+                            placeholder="-"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setBulkDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleBulkSave} disabled={!bulkSpalteId}>
+                  Alle speichern
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Notentabelle */}
@@ -566,6 +707,7 @@ export function NotenTabelle() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+
+          </div>
   );
 }
