@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "notenmeister-temp",
-        "width": 800,
-        "height": 600
+        "title": "Notenmeister",
+        "width": 1200,
+        "height": 800,
+        "theme": "Light"
       }
     ],
     "security": {

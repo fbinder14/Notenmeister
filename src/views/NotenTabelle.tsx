@@ -7,7 +7,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +59,10 @@ export function NotenTabelle() {
     berechneSchuelerDurchschnitt,
   } = useStore();
 
+  // Dialog State
+  const [schuelerDialogOpen, setSchuelerDialogOpen] = useState(false);
+  const [spalteDialogOpen, setSpalteDialogOpen] = useState(false);
+
   // Schüler Dialog State
   const [schuelerVorname, setSchuelerVorname] = useState('');
   const [schuelerNachname, setSchuelerNachname] = useState('');
@@ -93,6 +96,7 @@ export function NotenTabelle() {
       addSchueler(schuelerVorname.trim(), schuelerNachname.trim());
       setSchuelerVorname('');
       setSchuelerNachname('');
+      setSchuelerDialogOpen(false);
     }
   };
 
@@ -109,6 +113,7 @@ export function NotenTabelle() {
       setSpaltenName('');
       setSpaltenTyp('muendlich');
       setSpaltenGewichtung('1');
+      setSpalteDialogOpen(false);
     }
   };
 
@@ -161,39 +166,39 @@ export function NotenTabelle() {
   };
 
   const getNoteColor = (wert: number) => {
-    if (wert <= 2) return 'text-green-600 dark:text-green-400';
-    if (wert <= 4) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (wert <= 2) return 'text-green-600';
+    if (wert <= 4) return 'text-amber-600';
+    return 'text-red-600';
   };
 
   if (!aktuellesFachId) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-          <p className="text-lg">Wähle ein Fach aus der Seitenleiste</p>
+          <FileText className="h-20 w-20 mx-auto mb-4 opacity-40" />
+          <p className="text-xl">Wähle ein Fach aus der Seitenleiste</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-6 overflow-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">
+    <div className="flex-1 p-8 overflow-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">
           {aktuelleKlasse?.name} - {aktuellesFach?.name}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-lg text-muted-foreground mt-1">
           {aktuelleSchueler.length} Schüler, {aktuelleSpalten.length} Notenspalten
         </p>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-3 mb-6">
         {/* Schüler hinzufügen */}
-        <Dialog>
+        <Dialog open={schuelerDialogOpen} onOpenChange={setSchuelerDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="default">
+              <Plus className="h-5 w-5 mr-2" />
               Schüler
             </Button>
           </DialogTrigger>
@@ -201,42 +206,45 @@ export function NotenTabelle() {
             <DialogHeader>
               <DialogTitle>Neuen Schüler anlegen</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="vorname">Vorname</Label>
-                <Input
-                  id="vorname"
-                  value={schuelerVorname}
-                  onChange={e => setSchuelerVorname(e.target.value)}
-                  placeholder="Max"
-                />
+            <form onSubmit={e => { e.preventDefault(); handleAddSchueler(); }}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vorname" className="text-base">Vorname</Label>
+                  <Input
+                    id="vorname"
+                    value={schuelerVorname}
+                    onChange={e => setSchuelerVorname(e.target.value)}
+                    placeholder="Max"
+                    className="text-base"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nachname" className="text-base">Nachname</Label>
+                  <Input
+                    id="nachname"
+                    value={schuelerNachname}
+                    onChange={e => setSchuelerNachname(e.target.value)}
+                    placeholder="Mustermann"
+                    className="text-base"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nachname">Nachname</Label>
-                <Input
-                  id="nachname"
-                  value={schuelerNachname}
-                  onChange={e => setSchuelerNachname(e.target.value)}
-                  placeholder="Mustermann"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Abbrechen</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button onClick={handleAddSchueler}>Anlegen</Button>
-              </DialogClose>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSchuelerDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button type="submit">Anlegen</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 
         {/* Notenspalte hinzufügen */}
-        <Dialog>
+        <Dialog open={spalteDialogOpen} onOpenChange={setSpalteDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="default">
+              <Plus className="h-5 w-5 mr-2" />
               Notenspalte
             </Button>
           </DialogTrigger>
@@ -244,101 +252,104 @@ export function NotenTabelle() {
             <DialogHeader>
               <DialogTitle>Neue Notenspalte anlegen</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="spaltenName">Name</Label>
-                <Input
-                  id="spaltenName"
-                  value={spaltenName}
-                  onChange={e => setSpaltenName(e.target.value)}
-                  placeholder="1. Schulaufgabe"
-                />
+            <form onSubmit={e => { e.preventDefault(); handleAddSpalte(); }}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="spaltenName" className="text-base">Name</Label>
+                  <Input
+                    id="spaltenName"
+                    value={spaltenName}
+                    onChange={e => setSpaltenName(e.target.value)}
+                    placeholder="1. Schulaufgabe"
+                    className="text-base"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-base">Typ</Label>
+                  <Select value={spaltenTyp} onValueChange={v => setSpaltenTyp(v as NotenspaltenTyp)}>
+                    <SelectTrigger className="text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NOTENSPALTEN_TYPEN.map(typ => (
+                        <SelectItem key={typ.value} value={typ.value} className="text-base">
+                          {typ.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gewichtung" className="text-base">Gewichtung</Label>
+                  <Input
+                    id="gewichtung"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={spaltenGewichtung}
+                    onChange={e => setSpaltenGewichtung(e.target.value)}
+                    className="text-base"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    z.B. 2 für doppelte Gewichtung bei Schulaufgaben
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Typ</Label>
-                <Select value={spaltenTyp} onValueChange={v => setSpaltenTyp(v as NotenspaltenTyp)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NOTENSPALTEN_TYPEN.map(typ => (
-                      <SelectItem key={typ.value} value={typ.value}>
-                        {typ.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gewichtung">Gewichtung</Label>
-                <Input
-                  id="gewichtung"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={spaltenGewichtung}
-                  onChange={e => setSpaltenGewichtung(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  z.B. 2 für doppelte Gewichtung bei Schulaufgaben
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Abbrechen</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button onClick={handleAddSpalte}>Anlegen</Button>
-              </DialogClose>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSpalteDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button type="submit">Anlegen</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
       {/* Notentabelle */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border border-border/60 rounded-lg overflow-hidden bg-card">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-48 sticky left-0 bg-background">Schüler</TableHead>
+            <TableRow className="bg-secondary/50">
+              <TableHead className="w-56 sticky left-0 bg-secondary/50 text-base font-semibold">Schüler</TableHead>
               {aktuelleSpalten.map(spalte => (
-                <TableHead key={spalte.id} className="text-center min-w-24">
+                <TableHead key={spalte.id} className="text-center min-w-28">
                   <div className="flex flex-col items-center gap-1">
-                    <span className="font-medium">{spalte.visibleName}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-base">{spalte.visibleName}</span>
+                    <span className="text-sm text-muted-foreground">
                       {NOTENSPALTEN_TYPEN.find(t => t.value === spalte.typ)?.label} ({spalte.gewichtung}x)
                     </span>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5"
+                        className="h-7 w-7"
                         onClick={() => setEditSpalte({ id: spalte.id, name: spalte.visibleName, typ: spalte.typ, gewichtung: spalte.gewichtung })}
                       >
-                        <Edit className="h-3 w-3" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5"
+                        className="h-7 w-7"
                         onClick={() => deleteNotenspalte(spalte.id)}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="text-center min-w-20 font-bold">Ø</TableHead>
+              <TableHead className="text-center min-w-24 font-bold text-base">Durchschnitt</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {aktuelleSchueler.map(s => {
               const durchschnitt = berechneSchuelerDurchschnitt(s.id);
               return (
-                <TableRow key={s.id}>
-                  <TableCell className="sticky left-0 bg-background">
+                <TableRow key={s.id} className="hover:bg-accent/50">
+                  <TableCell className="sticky left-0 bg-card text-base">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">
                         {s.nachname}, {s.vorname}
@@ -347,18 +358,18 @@ export function NotenTabelle() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-8 w-8"
                           onClick={() => setEditSchueler({ id: s.id, vorname: s.vorname, nachname: s.nachname })}
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-8 w-8"
                           onClick={() => deleteSchueler(s.id)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -368,20 +379,20 @@ export function NotenTabelle() {
                     return (
                       <TableCell
                         key={spalte.id}
-                        className="text-center cursor-pointer hover:bg-muted transition-colors"
+                        className="text-center cursor-pointer hover:bg-primary/10 transition-colors"
                         onClick={() => openNoteDialog(s.id, spalte.id)}
                       >
                         {note ? (
-                          <span className={`text-lg font-bold ${getNoteColor(note.wert)}`}>
+                          <span className={`text-xl font-bold ${getNoteColor(note.wert)}`}>
                             {note.wert}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-lg">-</span>
                         )}
                       </TableCell>
                     );
                   })}
-                  <TableCell className="text-center font-bold">
+                  <TableCell className="text-center font-bold text-lg">
                     {durchschnitt !== null ? (
                       <span className={getNoteColor(durchschnitt)}>{durchschnitt.toFixed(2)}</span>
                     ) : (
@@ -403,55 +414,59 @@ export function NotenTabelle() {
               {editNote ? 'Note bearbeiten' : 'Neue Note eintragen'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="noteWert">Note (1-6)</Label>
-              <Select value={noteWert} onValueChange={setNoteWert}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Note wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6].map(n => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <form onSubmit={e => { e.preventDefault(); handleSaveNote(); }}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="noteWert" className="text-base">Note (1-6)</Label>
+                <Select value={noteWert} onValueChange={setNoteWert}>
+                  <SelectTrigger className="text-base">
+                    <SelectValue placeholder="Note wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6].map(n => (
+                      <SelectItem key={n} value={n.toString()} className="text-base">
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="noteDatum" className="text-base">Datum</Label>
+                <Input
+                  id="noteDatum"
+                  type="date"
+                  value={noteDatum}
+                  onChange={e => setNoteDatum(e.target.value)}
+                  className="text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="noteKommentar" className="text-base">Kommentar</Label>
+                <Textarea
+                  id="noteKommentar"
+                  value={noteKommentar}
+                  onChange={e => setNoteKommentar(e.target.value)}
+                  placeholder="Optionaler Kommentar zur Note..."
+                  rows={3}
+                  className="text-base"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="noteDatum">Datum</Label>
-              <Input
-                id="noteDatum"
-                type="date"
-                value={noteDatum}
-                onChange={e => setNoteDatum(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="noteKommentar">Kommentar</Label>
-              <Textarea
-                id="noteKommentar"
-                value={noteKommentar}
-                onChange={e => setNoteKommentar(e.target.value)}
-                placeholder="Optionaler Kommentar zur Note..."
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            {editNote && (
-              <Button variant="destructive" onClick={handleDeleteNote} className="mr-auto">
-                Löschen
+            <DialogFooter>
+              {editNote && (
+                <Button type="button" variant="destructive" onClick={handleDeleteNote} className="mr-auto">
+                  Löschen
+                </Button>
+              )}
+              <Button type="button" variant="outline" onClick={() => setNoteDialogOpen(false)}>
+                Abbrechen
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleSaveNote} disabled={!noteWert}>
-              Speichern
-            </Button>
-          </DialogFooter>
+              <Button type="submit" disabled={!noteWert}>
+                Speichern
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -461,30 +476,35 @@ export function NotenTabelle() {
           <DialogHeader>
             <DialogTitle>Schüler bearbeiten</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="editVorname">Vorname</Label>
-              <Input
-                id="editVorname"
-                value={editSchueler?.vorname ?? ''}
-                onChange={e => setEditSchueler(prev => prev ? { ...prev, vorname: e.target.value } : null)}
-              />
+          <form onSubmit={e => { e.preventDefault(); handleUpdateSchueler(); }}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editVorname" className="text-base">Vorname</Label>
+                <Input
+                  id="editVorname"
+                  value={editSchueler?.vorname ?? ''}
+                  onChange={e => setEditSchueler(prev => prev ? { ...prev, vorname: e.target.value } : null)}
+                  className="text-base"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editNachname" className="text-base">Nachname</Label>
+                <Input
+                  id="editNachname"
+                  value={editSchueler?.nachname ?? ''}
+                  onChange={e => setEditSchueler(prev => prev ? { ...prev, nachname: e.target.value } : null)}
+                  className="text-base"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="editNachname">Nachname</Label>
-              <Input
-                id="editNachname"
-                value={editSchueler?.nachname ?? ''}
-                onChange={e => setEditSchueler(prev => prev ? { ...prev, nachname: e.target.value } : null)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditSchueler(null)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleUpdateSchueler}>Speichern</Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditSchueler(null)}>
+                Abbrechen
+              </Button>
+              <Button type="submit">Speichern</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -494,51 +514,56 @@ export function NotenTabelle() {
           <DialogHeader>
             <DialogTitle>Notenspalte bearbeiten</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="editSpaltenName">Name</Label>
-              <Input
-                id="editSpaltenName"
-                value={editSpalte?.name ?? ''}
-                onChange={e => setEditSpalte(prev => prev ? { ...prev, name: e.target.value } : null)}
-              />
+          <form onSubmit={e => { e.preventDefault(); handleUpdateSpalte(); }}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editSpaltenName" className="text-base">Name</Label>
+                <Input
+                  id="editSpaltenName"
+                  value={editSpalte?.name ?? ''}
+                  onChange={e => setEditSpalte(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="text-base"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base">Typ</Label>
+                <Select
+                  value={editSpalte?.typ ?? 'muendlich'}
+                  onValueChange={v => setEditSpalte(prev => prev ? { ...prev, typ: v as NotenspaltenTyp } : null)}
+                >
+                  <SelectTrigger className="text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NOTENSPALTEN_TYPEN.map(typ => (
+                      <SelectItem key={typ.value} value={typ.value} className="text-base">
+                        {typ.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editGewichtung" className="text-base">Gewichtung</Label>
+                <Input
+                  id="editGewichtung"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={editSpalte?.gewichtung ?? 1}
+                  onChange={e => setEditSpalte(prev => prev ? { ...prev, gewichtung: Number(e.target.value) || 1 } : null)}
+                  className="text-base"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Typ</Label>
-              <Select
-                value={editSpalte?.typ ?? 'muendlich'}
-                onValueChange={v => setEditSpalte(prev => prev ? { ...prev, typ: v as NotenspaltenTyp } : null)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NOTENSPALTEN_TYPEN.map(typ => (
-                    <SelectItem key={typ.value} value={typ.value}>
-                      {typ.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editGewichtung">Gewichtung</Label>
-              <Input
-                id="editGewichtung"
-                type="number"
-                min="1"
-                max="10"
-                value={editSpalte?.gewichtung ?? 1}
-                onChange={e => setEditSpalte(prev => prev ? { ...prev, gewichtung: Number(e.target.value) || 1 } : null)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditSpalte(null)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleUpdateSpalte}>Speichern</Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditSpalte(null)}>
+                Abbrechen
+              </Button>
+              <Button type="submit">Speichern</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Trash2, GraduationCap, BookOpen, Calendar } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function Sidebar() {
   const {
@@ -32,7 +31,6 @@ export function Sidebar() {
     aktuellesFachId,
     addSchuljahr,
     setAktivesSchuljahr,
-    deleteSchuljahr,
     addKlasse,
     deleteKlasse,
     setAktuelleKlasse,
@@ -45,13 +43,28 @@ export function Sidebar() {
   const [neueKlasse, setNeueKlasse] = useState('');
   const [neuesFach, setNeuesFach] = useState('');
 
+  const [schuljahrDialogOpen, setSchuljahrDialogOpen] = useState(false);
+  const [klasseDialogOpen, setKlasseDialogOpen] = useState(false);
+  const [fachDialogOpen, setFachDialogOpen] = useState(false);
+
   const aktuelleKlassen = klassen.filter(k => k.schuljahrId === aktuellesSchuljahrId);
   const aktuelleFaecher = faecher.filter(f => f.klasseId === aktuelleKlasseId);
+
+  // Automatisch erstes Fach auswählen, wenn Klasse gewechselt wird
+  useEffect(() => {
+    if (aktuelleKlasseId) {
+      const faecherDerKlasse = faecher.filter(f => f.klasseId === aktuelleKlasseId);
+      if (faecherDerKlasse.length > 0 && !aktuellesFachId) {
+        setAktuellesFach(faecherDerKlasse[0].id);
+      }
+    }
+  }, [aktuelleKlasseId, faecher, aktuellesFachId, setAktuellesFach]);
 
   const handleAddSchuljahr = () => {
     if (neuesSchuljahr.trim()) {
       addSchuljahr(neuesSchuljahr.trim());
       setNeuesSchuljahr('');
+      setSchuljahrDialogOpen(false);
     }
   };
 
@@ -59,6 +72,7 @@ export function Sidebar() {
     if (neueKlasse.trim()) {
       addKlasse(neueKlasse.trim());
       setNeueKlasse('');
+      setKlasseDialogOpen(false);
     }
   };
 
@@ -66,37 +80,47 @@ export function Sidebar() {
     if (neuesFach.trim()) {
       addFach(neuesFach.trim());
       setNeuesFach('');
+      setFachDialogOpen(false);
+    }
+  };
+
+  const handleKlasseClick = (klasseId: string) => {
+    setAktuelleKlasse(klasseId);
+    // Automatisch erstes Fach der Klasse auswählen
+    const faecherDerKlasse = faecher.filter(f => f.klasseId === klasseId);
+    if (faecherDerKlasse.length > 0) {
+      setAktuellesFach(faecherDerKlasse[0].id);
     }
   };
 
   return (
-    <aside className="w-72 border-r bg-card p-4 flex flex-col gap-4 overflow-y-auto">
+    <aside className="w-80 border-r border-border/60 bg-secondary/30 p-5 flex flex-col gap-5 overflow-y-auto">
       {/* Schuljahr */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
             Schuljahr
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <Select value={aktuellesSchuljahrId ?? ''} onValueChange={setAktivesSchuljahr}>
-            <SelectTrigger>
+            <SelectTrigger className="text-base">
               <SelectValue placeholder="Schuljahr wählen" />
             </SelectTrigger>
             <SelectContent>
               {schuljahre.map(sj => (
-                <SelectItem key={sj.id} value={sj.id}>
+                <SelectItem key={sj.id} value={sj.id} className="text-base">
                   {sj.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Dialog>
+          <Dialog open={schuljahrDialogOpen} onOpenChange={setSchuljahrDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="default" className="w-full">
+                <Plus className="h-5 w-5 mr-2" />
                 Neues Schuljahr
               </Button>
             </DialogTrigger>
@@ -104,25 +128,27 @@ export function Sidebar() {
               <DialogHeader>
                 <DialogTitle>Neues Schuljahr anlegen</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="schuljahr">Name (z.B. 2024/25)</Label>
-                  <Input
-                    id="schuljahr"
-                    value={neuesSchuljahr}
-                    onChange={e => setNeuesSchuljahr(e.target.value)}
-                    placeholder="2024/25"
-                  />
+              <form onSubmit={e => { e.preventDefault(); handleAddSchuljahr(); }}>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="schuljahr" className="text-base">Name (z.B. 2024/25)</Label>
+                    <Input
+                      id="schuljahr"
+                      value={neuesSchuljahr}
+                      onChange={e => setNeuesSchuljahr(e.target.value)}
+                      placeholder="2024/25"
+                      className="text-base"
+                      autoFocus
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Abbrechen</Button>
-                </DialogClose>
-                <DialogClose asChild>
-                  <Button onClick={handleAddSchuljahr}>Anlegen</Button>
-                </DialogClose>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setSchuljahrDialogOpen(false)}>
+                    Abbrechen
+                  </Button>
+                  <Button type="submit">Anlegen</Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </CardContent>
@@ -130,10 +156,10 @@ export function Sidebar() {
 
       {/* Klassen */}
       {aktuellesSchuljahrId && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
+        <Card className="border-0 shadow-none bg-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
               Klassen
             </CardTitle>
           </CardHeader>
@@ -141,32 +167,32 @@ export function Sidebar() {
             {aktuelleKlassen.map(klasse => (
               <div
                 key={klasse.id}
-                className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
                   aktuelleKlasseId === klasse.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'hover:bg-accent'
                 }`}
-                onClick={() => setAktuelleKlasse(klasse.id)}
+                onClick={() => handleKlasseClick(klasse.id)}
               >
-                <span className="text-sm font-medium">{klasse.name}</span>
+                <span className="text-base font-medium">{klasse.name}</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6"
+                  className="h-8 w-8"
                   onClick={e => {
                     e.stopPropagation();
                     deleteKlasse(klasse.id);
                   }}
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
 
-            <Dialog>
+            <Dialog open={klasseDialogOpen} onOpenChange={setKlasseDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="default" className="w-full mt-2">
+                  <Plus className="h-5 w-5 mr-2" />
                   Neue Klasse
                 </Button>
               </DialogTrigger>
@@ -174,25 +200,27 @@ export function Sidebar() {
                 <DialogHeader>
                   <DialogTitle>Neue Klasse anlegen</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="klasse">Name (z.B. 10a)</Label>
-                    <Input
-                      id="klasse"
-                      value={neueKlasse}
-                      onChange={e => setNeueKlasse(e.target.value)}
-                      placeholder="10a"
-                    />
+                <form onSubmit={e => { e.preventDefault(); handleAddKlasse(); }}>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="klasse" className="text-base">Name (z.B. 10a)</Label>
+                      <Input
+                        id="klasse"
+                        value={neueKlasse}
+                        onChange={e => setNeueKlasse(e.target.value)}
+                        placeholder="10a"
+                        className="text-base"
+                        autoFocus
+                      />
+                    </div>
                   </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Abbrechen</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button onClick={handleAddKlasse}>Anlegen</Button>
-                  </DialogClose>
-                </DialogFooter>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setKlasseDialogOpen(false)}>
+                      Abbrechen
+                    </Button>
+                    <Button type="submit">Anlegen</Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </CardContent>
@@ -201,10 +229,10 @@ export function Sidebar() {
 
       {/* Fächer */}
       {aktuelleKlasseId && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
+        <Card className="border-0 shadow-none bg-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
               Fächer
             </CardTitle>
           </CardHeader>
@@ -212,32 +240,32 @@ export function Sidebar() {
             {aktuelleFaecher.map(fach => (
               <div
                 key={fach.id}
-                className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
                   aktuellesFachId === fach.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'hover:bg-accent'
                 }`}
                 onClick={() => setAktuellesFach(fach.id)}
               >
-                <span className="text-sm font-medium">{fach.name}</span>
+                <span className="text-base font-medium">{fach.name}</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6"
+                  className="h-8 w-8"
                   onClick={e => {
                     e.stopPropagation();
                     deleteFach(fach.id);
                   }}
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
 
-            <Dialog>
+            <Dialog open={fachDialogOpen} onOpenChange={setFachDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="default" className="w-full mt-2">
+                  <Plus className="h-5 w-5 mr-2" />
                   Neues Fach
                 </Button>
               </DialogTrigger>
@@ -245,25 +273,27 @@ export function Sidebar() {
                 <DialogHeader>
                   <DialogTitle>Neues Fach anlegen</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fach">Name (z.B. Mathematik)</Label>
-                    <Input
-                      id="fach"
-                      value={neuesFach}
-                      onChange={e => setNeuesFach(e.target.value)}
-                      placeholder="Mathematik"
-                    />
+                <form onSubmit={e => { e.preventDefault(); handleAddFach(); }}>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fach" className="text-base">Name (z.B. Mathematik)</Label>
+                      <Input
+                        id="fach"
+                        value={neuesFach}
+                        onChange={e => setNeuesFach(e.target.value)}
+                        placeholder="Mathematik"
+                        className="text-base"
+                        autoFocus
+                      />
+                    </div>
                   </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Abbrechen</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button onClick={handleAddFach}>Anlegen</Button>
-                  </DialogClose>
-                </DialogFooter>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setFachDialogOpen(false)}>
+                      Abbrechen
+                    </Button>
+                    <Button type="submit">Anlegen</Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </CardContent>
