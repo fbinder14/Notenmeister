@@ -11,6 +11,15 @@ type Phase = 'loading' | 'setup' | 'locked' | 'ready';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const SAVE_DELAY = 250;
+const PUBLIC_KEY = 'notenmeister.public';
+
+function readPublicFlag(): boolean {
+  try {
+    return localStorage.getItem(PUBLIC_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 const FOLDER_BACKUP_DELAY = 60_000;
 
 class App {
@@ -20,6 +29,11 @@ class App {
   lastSavedAt = $state<Date | null>(null);
   folderBackup = $state<{ name: string | null; ok: boolean; lastAt: Date | null }>({ name: null, ok: false, lastAt: null });
   persisted = $state(false);
+  /**
+   * Öffentlicher Modus (Beamer, Schüler am Pult): nur Klassen- und Schülernamen,
+   * Noten erst nach ausdrücklicher Rückfrage. Bleibt über Neuladen hinweg erhalten.
+   */
+  publicMode = $state(readPublicFlag());
   /** Eine neue Programmversion liegt bereit und wird beim Sperren geladen. */
   updateReady = false;
 
@@ -43,6 +57,25 @@ class App {
   get activeYear(): SchoolYear | undefined {
     const c = this.core;
     return c.years.find((y) => y.id === c.settings.activeYearId) ?? c.years.at(-1);
+  }
+
+  setPublicMode(on: boolean) {
+    this.publicMode = on;
+    try {
+      localStorage.setItem(PUBLIC_KEY, on ? '1' : '0');
+    } catch {
+      /* ohne Speicher gilt der Modus nur bis zum Neuladen */
+    }
+  }
+
+  /**
+   * Verlässt den öffentlichen Modus nur mit dem Master-Passwort, damit niemand
+   * am Pult per Tastenkürzel an die Noten kommt. Wirft `WrongPasswordError`.
+   */
+  async leavePublicMode(password: string) {
+    if (!this.#header) throw new Error('Kein Tresor vorhanden.');
+    await unlockVault(this.#header, password);
+    this.setPublicMode(false);
   }
 
   async init() {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    allowsMakeup,
     courseStudents,
     findClass,
     findCourse,
@@ -34,7 +35,21 @@
   const values = $derived(
     [...grades.values()].filter((g) => g.value !== null && g.status !== 'nicht_gewertet' && g.status !== 'nachtermin').map((g) => g.value!),
   );
-  const missing = $derived(students.filter((s) => !grades.has(s.id)).length);
+  const missingStudents = $derived(students.filter((s) => !grades.has(s.id)));
+  const missing = $derived(missingStudents.length);
+  const openMakeups = $derived([...grades.values()].filter((g) => g.status === 'nachtermin').length);
+  /** Hervorheben erst, wenn mit der Eingabe begonnen wurde – sonst wäre jede Zeile markiert. */
+  const started = $derived(grades.size > 0);
+  /** Schulaufgaben, Kurzarbeiten usw. werden nachgeholt, Stegreifaufgaben nicht (RSO § 22). */
+  const makeup = $derived(allowsMakeup(t));
+
+  function markMakeup(s: Student) {
+    setAssessmentGrade(cls!, course!, a!, s.id, { value: null, status: 'nachtermin', comment: '' });
+  }
+
+  function markAllMakeup() {
+    for (const s of missingStudents) markMakeup(s);
+  }
 
   let editOpen = $state(false);
   let dlg = $state<{ student: Student; grade: Grade | null; a?: Assessment } | null>(null);
@@ -61,19 +76,31 @@
 
   <div class="mx-auto grid max-w-6xl gap-6 px-8 py-7 lg:grid-cols-[1fr_20rem]">
     <section class="card overflow-hidden">
-      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-line-dark">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-100 px-5 py-3.5 dark:border-line-dark">
         <div>
-          <h2 class="text-[14px] font-semibold">Sammeleingabe</h2>
-          <p class="text-[12px] text-slate-500">
+          <h2 class="text-[0.875rem] font-semibold">Sammeleingabe</h2>
+          <p class="text-[0.75rem] text-slate-500">
             {#if a.maxPoints}Punkte eintragen (max. {String(a.maxPoints).replace('.', ',')}), <span class="kbd">↵</span> springt weiter. Die Note wird berechnet.{:else}Ziffer 1–6 tippen – es geht automatisch weiter.{/if}
           </p>
         </div>
-        <span class="rounded-full px-2.5 py-1 text-[12px] font-medium {missing ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'}">
-          {missing ? `${missing} offen` : 'vollständig'}
-        </span>
+        <div class="flex shrink-0 items-center gap-2">
+          {#if makeup && started && missing}
+            <button class="btn btn-soft h-7 px-2.5 text-[0.75rem]" onclick={markAllMakeup} title="Alle Schülerinnen und Schüler ohne Note als „entschuldigt versäumt – Nachtermin offen“ eintragen">
+              Fehlende als Nachtermin
+            </button>
+          {/if}
+          {#if openMakeups}
+            <span class="rounded-full bg-violet-50 px-2.5 py-1 text-[0.75rem] font-medium text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+              {openMakeups} Nachtermin{openMakeups === 1 ? '' : 'e'}
+            </span>
+          {/if}
+          <span class="rounded-full px-2.5 py-1 text-[0.75rem] font-medium {missing ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'}">
+            {missing ? `${missing} ${started ? 'fehlen' : 'offen'}` : 'vollständig'}
+          </span>
+        </div>
       </div>
-      <table class="w-full text-[13px]">
-        <thead class="text-left text-[11px] uppercase tracking-wider text-slate-400">
+      <table class="w-full text-[0.8125rem]">
+        <thead class="text-left text-[0.6875rem] uppercase tracking-wider text-slate-400">
           <tr>
             <th class="w-10 px-5 py-2 font-semibold">#</th>
             <th class="px-2 py-2 font-semibold">Name</th>
@@ -85,8 +112,16 @@
         <tbody>
           {#each students as s, i (s.id)}
             {@const g = grades.get(s.id)}
-            <tr class="group border-t border-slate-100 transition hover:bg-brand-50/40 dark:border-line-dark dark:hover:bg-white/[0.02]">
-              <td class="px-5 py-1.5 tabular-nums text-slate-400">{i + 1}</td>
+            {@const lacks = started && !g}
+            <tr
+              class="group border-t border-slate-100 transition dark:border-line-dark
+                {lacks
+                ? 'bg-amber-50/70 shadow-[inset_3px_0_0_var(--color-amber-400)] hover:bg-amber-50 dark:bg-amber-500/[0.07] dark:hover:bg-amber-500/10'
+                : g?.status === 'nachtermin'
+                  ? 'bg-violet-50/50 shadow-[inset_3px_0_0_var(--color-violet-400)] dark:bg-violet-500/[0.06]'
+                  : 'hover:bg-brand-50/40 dark:hover:bg-white/[0.02]'}"
+            >
+              <td class="px-5 py-1.5 tabular-nums {lacks ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-slate-400'}">{i + 1}</td>
               <td class="px-2 py-1.5 font-medium">{s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span></td>
               <td class="px-2 py-1">
                 <GradeCell
@@ -100,13 +135,30 @@
                 />
               </td>
               <td class="px-2 py-1">
+                {#if lacks}
+                  <div class="flex h-8 items-center gap-2 px-2">
+                    <span class="inline-flex items-center gap-1 text-[0.75rem] font-medium text-amber-700 dark:text-amber-300">
+                      <Icon name="alert" size={13} /> Note fehlt
+                    </span>
+                    {#if makeup}
+                      <button
+                        class="ml-auto rounded-md px-2 py-0.5 text-[0.75rem] font-medium text-violet-700 ring-1 ring-inset ring-violet-300/70 transition hover:bg-violet-100 dark:text-violet-300 dark:ring-violet-500/40 dark:hover:bg-violet-500/15"
+                        onclick={() => markMakeup(s)}
+                        title="Entschuldigt versäumt – Nachtermin offen (RSO § 22)">Nachtermin</button
+                      >
+                    {:else}
+                      <span class="ml-auto text-[0.6875rem] text-slate-400">wird nicht nachgeholt</span>
+                    {/if}
+                  </div>
+                {:else}
                 <input
-                  class="h-8 w-full rounded-lg border-0 bg-transparent px-2 text-[12.5px] text-slate-600 outline-none ring-1 ring-inset ring-transparent transition placeholder:text-slate-300 hover:ring-slate-200 focus:bg-white focus:ring-brand-400 dark:text-slate-300 dark:placeholder:text-slate-600 dark:hover:ring-line-dark dark:focus:bg-white/10"
+                  class="h-8 w-full rounded-lg border-0 bg-transparent px-2 text-[0.78125rem] text-slate-600 outline-none ring-1 ring-inset ring-transparent transition placeholder:text-slate-300 hover:ring-slate-200 focus:bg-white focus:ring-brand-400 dark:text-slate-300 dark:placeholder:text-slate-600 dark:hover:ring-line-dark dark:focus:bg-white/10"
                   value={g?.comment ?? ''}
                   placeholder={g ? (g.status !== 'gewertet' ? STATUS_LABEL[g.status] : '') : ''}
                   onchange={(e) => setComment(s, g, (e.target as HTMLInputElement).value)}
                   disabled={!g}
                 />
+                {/if}
               </td>
               <td class="px-2 py-1 text-right">
                 <button class="btn btn-ghost h-7 w-7 px-0 opacity-0 transition group-hover:opacity-100" title="Status, Zeitstempel, Verlauf" onclick={() => (dlg = { student: s, grade: g ?? null, a })}>
@@ -121,11 +173,11 @@
 
     <aside class="grid content-start gap-6">
       <div class="card p-5">
-        <h2 class="mb-4 text-[14px] font-semibold">Notenspiegel</h2>
+        <h2 class="mb-4 text-[0.875rem] font-semibold">Notenspiegel</h2>
         <Distribution {values} />
       </div>
-      <div class="card p-5 text-[13px]">
-        <h2 class="mb-3 text-[14px] font-semibold">Angaben</h2>
+      <div class="card p-5 text-[0.8125rem]">
+        <h2 class="mb-3 text-[0.875rem] font-semibold">Angaben</h2>
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
           <dt class="text-slate-500">Art</dt><dd>{t?.name}</dd>
           <dt class="text-slate-500">Kategorie</dt><dd>{t?.category === 'gross' ? 'großer' : 'kleiner'} Leistungsnachweis</dd>
@@ -133,12 +185,12 @@
           <dt class="text-slate-500">Datum</dt><dd>{fmtDate(a.date)}</dd>
         </dl>
         {#if a.maxPoints}
-          <h3 class="mb-2 mt-4 text-[12px] font-semibold text-slate-500">Notenschlüssel „{key.name}“</h3>
+          <h3 class="mb-2 mt-4 text-[0.75rem] font-semibold text-slate-500">Notenschlüssel „{key.name}“</h3>
           <div class="grid grid-cols-3 gap-1.5">
             {#each pointRanges(key, a.maxPoints) as r (r.grade)}
               <div class="rounded-lg px-2 py-1.5 text-center ring-1 ring-inset {GRADE_CLASS[r.grade]}">
-                <div class="text-[13px] font-semibold">{r.grade}</div>
-                <div class="text-[10.5px] tabular-nums opacity-80">{String(r.from).replace('.', ',')}–{String(r.to).replace('.', ',')}</div>
+                <div class="text-[0.8125rem] font-semibold">{r.grade}</div>
+                <div class="text-[0.65625rem] tabular-nums opacity-80">{String(r.from).replace('.', ',')}–{String(r.to).replace('.', ',')}</div>
               </div>
             {/each}
           </div>

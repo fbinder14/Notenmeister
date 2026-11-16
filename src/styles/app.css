@@ -48,11 +48,12 @@
 
 @layer base {
   html {
+    font-size: 112.5%;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-canvas font-sans text-[14px] text-slate-800 dark:bg-canvas-dark dark:text-slate-200;
+    @apply bg-canvas font-sans text-[0.875rem] text-slate-800 dark:bg-canvas-dark dark:text-slate-200;
     background-image:
       radial-gradient(60rem 30rem at 110% -10%, rgb(99 102 241 / 0.07), transparent 60%),
       radial-gradient(40rem 24rem at -10% 110%, rgb(14 165 233 / 0.05), transparent 60%);
@@ -80,7 +81,7 @@
 }
 
 @utility btn {
-  @apply inline-flex h-9 cursor-pointer select-none items-center justify-center gap-2 rounded-xl px-3.5 text-[13px] font-medium whitespace-nowrap transition duration-150 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 focus-visible:shadow-glow;
+  @apply inline-flex h-9 cursor-pointer select-none items-center justify-center gap-2 rounded-xl px-3.5 text-[0.8125rem] font-medium whitespace-nowrap transition duration-150 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 focus-visible:shadow-glow;
 }
 
 @utility btn-primary {
@@ -100,15 +101,15 @@
 }
 
 @utility field {
-  @apply h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-400 focus:shadow-glow focus:outline-none dark:border-line-dark dark:bg-white/5 dark:text-slate-100 dark:hover:border-slate-600;
+  @apply h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-[0.8125rem] text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-400 focus:shadow-glow focus:outline-none dark:border-line-dark dark:bg-white/5 dark:text-slate-100 dark:hover:border-slate-600;
 }
 
 @utility label {
-  @apply mb-1.5 block text-[12px] font-medium text-slate-500 dark:text-slate-400;
+  @apply mb-1.5 block text-[0.75rem] font-medium text-slate-500 dark:text-slate-400;
 }
 
 @utility kbd {
-  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-line-dark dark:bg-white/5 dark:text-slate-400;
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-1 font-mono text-[0.6875rem] text-slate-500 dark:border-line-dark dark:bg-white/5 dark:text-slate-400;
 }
 
 /* Notenfarben 1–6 */

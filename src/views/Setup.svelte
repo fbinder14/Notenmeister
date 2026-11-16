@@ -71,8 +71,8 @@
 
 <AuthFrame wide={step === 'password'}>
   {#if step === 'start'}
-    <h2 class="text-[17px] font-semibold text-slate-900 dark:text-white">Willkommen</h2>
-    <p class="mt-1.5 text-[13px] leading-relaxed text-slate-500">
+    <h2 class="text-[1.0625rem] font-semibold text-slate-900 dark:text-white">Willkommen</h2>
+    <p class="mt-1.5 text-[0.8125rem] leading-relaxed text-slate-500">
       Alle Daten bleiben auf diesem Computer und werden verschlüsselt gespeichert. Es gibt keine Cloud und kein Konto.
     </p>
     <div class="mt-6 grid gap-3">
@@ -88,8 +88,8 @@
   {:else if step === 'password'}
     <form onsubmit={create} class="grid gap-5">
       <div>
-        <h2 class="text-[17px] font-semibold text-slate-900 dark:text-white">Master-Passwort festlegen</h2>
-        <p class="mt-1 text-[13px] text-slate-500">Damit werden alle Daten verschlüsselt. Mindestens {MIN_PASSWORD_LENGTH} Zeichen.</p>
+        <h2 class="text-[1.0625rem] font-semibold text-slate-900 dark:text-white">Master-Passwort festlegen</h2>
+        <p class="mt-1 text-[0.8125rem] text-slate-500">Damit werden alle Daten verschlüsselt. Mindestens {MIN_PASSWORD_LENGTH} Zeichen.</p>
       </div>
       <div class="grid gap-3">
         <div class="relative">
@@ -109,11 +109,11 @@
           {/each}
         </div>
         <input class="field h-11" type={show ? 'text' : 'password'} placeholder="Passwort wiederholen" bind:value={pw2} autocomplete="new-password" />
-        {#if pw2 && pw !== pw2}<p class="text-[12px] text-rose-600">Die Passwörter stimmen nicht überein.</p>{/if}
+        {#if pw2 && pw !== pw2}<p class="text-[0.75rem] text-rose-600">Die Passwörter stimmen nicht überein.</p>{/if}
       </div>
 
       <fieldset class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-line-dark">
-        <legend class="px-1 text-[12px] font-medium text-slate-500">Erstes Schuljahr</legend>
+        <legend class="px-1 text-[0.75rem] font-medium text-slate-500">Erstes Schuljahr</legend>
         <div class="grid grid-cols-2 gap-3">
           <label><span class="label">Bezeichnung</span><input class="field" bind:value={year.name} /></label>
           <label><span class="label">Beginn</span><input class="field" type="date" bind:value={year.start} /></label>
@@ -122,12 +122,12 @@
         </div>
       </fieldset>
 
-      <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-3.5 text-[13px] leading-snug text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
+      <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-3.5 text-[0.8125rem] leading-snug text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
         <input type="checkbox" class="mt-0.5 h-4 w-4 accent-brand-600" bind:checked={ack} />
         <span>Ich habe verstanden: Ohne dieses Passwort sind die Daten <b>unwiederbringlich verloren</b>. Es gibt keine Wiederherstellung.</span>
       </label>
 
-      {#if error}<p class="text-[13px] text-rose-600">{error}</p>{/if}
+      {#if error}<p class="text-[0.8125rem] text-rose-600">{error}</p>{/if}
       <div class="flex justify-between gap-2">
         <button type="button" class="btn btn-ghost" onclick={() => (step = 'start')}><Icon name="back" size={16} /> Zurück</button>
         <button class="btn btn-primary min-w-40" disabled={!valid || busy}>
@@ -138,16 +138,16 @@
   {:else}
     <form onsubmit={restore} class="grid gap-4">
       <div>
-        <h2 class="text-[17px] font-semibold text-slate-900 dark:text-white">Sicherung wiederherstellen</h2>
-        <p class="mt-1 text-[13px] text-slate-500">Datei <code>.notenmeister</code> wählen und das Passwort eingeben, das beim Export galt.</p>
+        <h2 class="text-[1.0625rem] font-semibold text-slate-900 dark:text-white">Sicherung wiederherstellen</h2>
+        <p class="mt-1 text-[0.8125rem] text-slate-500">Datei <code>.notenmeister</code> wählen und das Passwort eingeben, das beim Export galt.</p>
       </div>
-      <label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-[13px] text-slate-500 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-line-dark dark:hover:bg-white/5">
+      <label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-[0.8125rem] text-slate-500 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-line-dark dark:hover:bg-white/5">
         <Icon name="upload" size={22} class="text-brand-500" />
         {importName || 'Datei auswählen'}
         <input type="file" accept=".notenmeister,application/json" class="hidden" onchange={pick} />
       </label>
       <input class="field h-11" type="password" placeholder="Passwort der Sicherung" bind:value={importPw} autocomplete="current-password" />
-      {#if error}<p class="text-[13px] text-rose-600">{error}</p>{/if}
+      {#if error}<p class="text-[0.8125rem] text-rose-600">{error}</p>{/if}
       <div class="flex justify-between gap-2">
         <button type="button" class="btn btn-ghost" onclick={() => (step = 'start')}><Icon name="back" size={16} /> Zurück</button>
         <button class="btn btn-primary min-w-40" disabled={!importText || !importPw || busy}>

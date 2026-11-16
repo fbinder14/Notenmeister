@@ -22,7 +22,7 @@
       >
         <Icon name={t.kind === 'success' ? 'check' : t.kind === 'error' ? 'alert' : 'info'} size={14} stroke={2.25} />
       </span>
-      <p class="flex-1 text-[13px] leading-snug text-slate-700 dark:text-slate-200">{t.text}</p>
+      <p class="flex-1 text-[0.8125rem] leading-snug text-slate-700 dark:text-slate-200">{t.text}</p>
       <button class="text-slate-400 hover:text-slate-600" onclick={() => toast.dismiss(t.id)} aria-label="Ausblenden">
         <Icon name="x" size={14} />
       </button>

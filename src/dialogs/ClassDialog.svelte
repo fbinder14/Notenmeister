@@ -59,7 +59,7 @@
         </select>
       </label>
     </div>
-    <p class="text-[12px] leading-relaxed text-slate-500">Jahrgangsstufe und Gruppe dienen als Vorschlag für die Anzahl der Schulaufgaben (RSO § 18 Abs. 1).</p>
+    <p class="text-[0.75rem] leading-relaxed text-slate-500">Jahrgangsstufe und Gruppe dienen als Vorschlag für die Anzahl der Schulaufgaben (RSO § 18 Abs. 1).</p>
   </form>
   {#snippet footer()}
     <button type="button" class="btn btn-ghost" onclick={() => (open = false)}>Abbrechen</button>

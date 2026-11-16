@@ -100,10 +100,10 @@
       </label>
     </div>
     {#if type?.category === 'gross' && weight !== null && weight !== 2}
-      <p class="-mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">Laut RSO § 23 Abs. 2 Satz 3 haben Schulaufgaben und angesagte Tests doppeltes Gewicht.</p>
+      <p class="-mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[0.75rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">Laut RSO § 23 Abs. 2 Satz 3 haben Schulaufgaben und angesagte Tests doppeltes Gewicht.</p>
     {/if}
 
-    <label class="flex items-center gap-2.5 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={usePoints} /> Mit Punkten und Notenschlüssel bewerten</label>
+    <label class="flex items-center gap-2.5 text-[0.8125rem]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={usePoints} /> Mit Punkten und Notenschlüssel bewerten</label>
 
     {#if usePoints}
       <div class="grid grid-cols-2 gap-3">
@@ -119,8 +119,8 @@
         <div class="grid grid-cols-6 gap-1.5">
           {#each ranges as r (r.grade)}
             <div class="rounded-xl px-2 py-2 text-center ring-1 ring-inset {GRADE_CLASS[r.grade]}">
-              <div class="text-[15px] font-semibold">{r.grade}</div>
-              <div class="text-[11px] tabular-nums opacity-80">{String(r.from).replace('.', ',')}–{String(r.to).replace('.', ',')}</div>
+              <div class="text-[0.9375rem] font-semibold">{r.grade}</div>
+              <div class="text-[0.6875rem] tabular-nums opacity-80">{String(r.from).replace('.', ',')}–{String(r.to).replace('.', ',')}</div>
             </div>
           {/each}
         </div>
@@ -130,7 +130,7 @@
   {#snippet footer()}
     {#if assessment}
       {#if confirmDelete}
-        <span class="mr-auto flex items-center gap-2 text-[12px] text-rose-600">
+        <span class="mr-auto flex items-center gap-2 text-[0.75rem] text-rose-600">
           {hasGrades ? 'Alle Noten dazu werden gelöscht.' : 'Wirklich löschen?'}
           <button type="button" class="btn btn-danger h-8" onclick={del}>Löschen</button>
         </span>

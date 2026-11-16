@@ -25,6 +25,7 @@
   let confirm = $state<{ text: string; run: () => void } | null>(null);
 
   const students = $derived(cls ? sortStudents(cls.students) : []);
+  const noteCount = $derived((cls?.notes ?? []).reduce((m, n) => m.set(n.studentId, (m.get(n.studentId) ?? 0) + 1), new Map<string, number>()));
 
   function openStudent(s: Student) {
     editStudent = s;
@@ -56,14 +57,14 @@
 
   function askRemoveCourse(c: Course) {
     confirm = {
-      text: `Kurs ${subjectOf(c)?.name} mit ${c.assessments.length} Leistungsnachweisen und ${c.grades.length} Noten löschen?`,
+      text: `Unterricht ${subjectOf(c)?.name} mit ${c.assessments.length} Leistungsnachweisen und ${c.grades.length} Noten löschen?`,
       run: () => removeCourse(cls!, c.id),
     };
   }
 
   function askRemoveClass() {
     confirm = {
-      text: `Klasse ${cls!.name} mit allen Kursen und Noten endgültig löschen? Das lässt sich nicht rückgängig machen.`,
+      text: `Klasse ${cls!.name} mit allen Unterrichten und Noten endgültig löschen? Das lässt sich nicht rückgängig machen.`,
       run: () => {
         app.removeClass(cls!.id);
         toast.info('Klasse gelöscht.');
@@ -86,7 +87,7 @@
 
   <div class="mx-auto grid max-w-6xl gap-7 px-8 py-7">
     <section>
-      <h2 class="mb-3 text-[13px] font-semibold uppercase tracking-wider text-slate-400">Meine Fächer in dieser Klasse</h2>
+      <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Meine Fächer in dieser Klasse</h2>
       {#if cls.courses.length}
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {#each cls.courses as c (c.id)}
@@ -94,17 +95,17 @@
             <div class="card group relative overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
               <div class="absolute inset-0 bg-gradient-to-br {SUBJECT_TINT[s?.color ?? 'slate']} opacity-70"></div>
               <a href={href.course(cls.id, c.id)} class="relative block p-4">
-                <div class="text-[12px] font-semibold uppercase tracking-wide">{s?.short}</div>
-                <div class="truncate text-[15px] font-semibold text-slate-900 dark:text-white" title={s?.name}>{s?.name}</div>
-                <div class="mt-2 flex flex-wrap gap-x-3 text-[12px] text-slate-500">
+                <div class="text-[0.75rem] font-semibold uppercase tracking-wide">{s?.short}</div>
+                <div class="truncate text-[0.9375rem] font-semibold text-slate-900 dark:text-white" title={s?.name}>{s?.name}</div>
+                <div class="mt-2 flex flex-wrap gap-x-3 text-[0.75rem] text-slate-500">
                   <span>{c.weeklyHours} Wochenstunden</span>
                   <span>{c.testModel ? 'Testmodell' : `${c.plannedSchulaufgaben} SA`}</span>
                   {#if c.promotionSubject}<span>Vorrückungsfach</span>{/if}
                 </div>
               </a>
               <div class="relative flex justify-end gap-1 px-3 pb-3 opacity-0 transition group-hover:opacity-100">
-                <button class="btn btn-ghost h-7 px-2 text-[12px]" onclick={() => { editCourse = c; courseOpen = true; }}><Icon name="edit" size={13} /> Bearbeiten</button>
-                <button class="btn btn-ghost h-7 px-2 text-[12px] text-rose-600" onclick={() => askRemoveCourse(c)}><Icon name="trash" size={13} /></button>
+                <button class="btn btn-ghost h-7 px-2 text-[0.75rem]" onclick={() => { editCourse = c; courseOpen = true; }}><Icon name="edit" size={13} /> Bearbeiten</button>
+                <button class="btn btn-ghost h-7 px-2 text-[0.75rem] text-rose-600" onclick={() => askRemoveCourse(c)}><Icon name="trash" size={13} /></button>
               </div>
             </div>
           {/each}
@@ -118,12 +119,12 @@
 
     <section>
       <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-[13px] font-semibold uppercase tracking-wider text-slate-400">Schülerinnen und Schüler · {cls.students.length}</h2>
+        <h2 class="text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Schülerinnen und Schüler · {cls.students.length}</h2>
       </div>
       {#if students.length}
         <div class="card overflow-hidden">
-          <table class="w-full text-[13px]">
-            <thead class="bg-slate-50/80 text-left text-[11px] uppercase tracking-wider text-slate-400 dark:bg-white/[0.02]">
+          <table class="w-full text-[0.8125rem]">
+            <thead class="bg-slate-50/80 text-left text-[0.6875rem] uppercase tracking-wider text-slate-400 dark:bg-white/[0.02]">
               <tr><th class="w-12 px-4 py-2.5 font-semibold">#</th><th class="px-4 py-2.5 font-semibold">Name</th><th class="px-4 py-2.5 font-semibold">Vermerk</th><th></th></tr>
             </thead>
             <tbody>
@@ -132,9 +133,10 @@
                   <td class="px-4 py-2 tabular-nums text-slate-400">{i + 1}</td>
                   <td class="px-4 py-2">
                     <a class="font-medium hover:text-brand-600" href={href.student(cls.id, s.id)}>{s.lastName}, {s.firstName}</a>
-                    {#if s.leftAt}<span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] dark:bg-white/10">ausgetreten {new Date(s.leftAt).toLocaleDateString('de-DE')}</span>{/if}
+                    {#if noteCount.get(s.id)}<span class="ml-2 rounded-full bg-sky-50 px-2 py-0.5 text-[0.6875rem] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300" title="Pädagogische Notizen">{noteCount.get(s.id)} Notiz{noteCount.get(s.id) === 1 ? '' : 'en'}</span>{/if}
+                    {#if s.leftAt}<span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[0.6875rem] dark:bg-white/10">ausgetreten {new Date(s.leftAt).toLocaleDateString('de-DE')}</span>{/if}
                   </td>
-                  <td class="px-4 py-2 text-[12px] text-slate-500">{s.support ?? ''}</td>
+                  <td class="px-4 py-2 text-[0.75rem] text-slate-500">{s.support ?? ''}</td>
                   <td class="px-4 py-2 text-right">
                     <button class="btn btn-ghost h-7 px-2 opacity-0 transition group-hover:opacity-100" onclick={() => openStudent(s)} aria-label="Bearbeiten"><Icon name="edit" size={14} /></button>
                   </td>
@@ -176,7 +178,7 @@
   </Modal>
 
   <Modal open={!!confirm} title="Bitte bestätigen" width="max-w-md" onclose={() => (confirm = null)}>
-    <p class="text-[13.5px] leading-relaxed">{confirm?.text}</p>
+    <p class="text-[0.84375rem] leading-relaxed">{confirm?.text}</p>
     {#snippet footer()}
       <button class="btn btn-ghost" onclick={() => (confirm = null)}>Abbrechen</button>
       <button class="btn btn-danger" onclick={() => { confirm?.run(); confirm = null; }}>Löschen</button>

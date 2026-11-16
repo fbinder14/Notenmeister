@@ -83,11 +83,11 @@
 </script>
 
 {#if !cls || !course || !year || !ctx}
-  <div class="p-8"><Empty icon="book" title="Kurs nicht gefunden" /></div>
+  <div class="p-8"><Empty icon="book" title="Unterricht nicht gefunden" /></div>
 {:else}
   <PageHeader title={subject?.name ?? 'Fach'} eyebrow="Klasse {cls.name} · {course.weeklyHours} Wochenstunden{course.testModel ? ' · Testmodell' : ''}" back={href.cls(cls.id)}>
     {#snippet actions()}
-      <button class="btn btn-ghost" onclick={() => (courseOpen = true)} title="Kurs bearbeiten"><Icon name="settings" size={15} /></button>
+      <button class="btn btn-ghost" onclick={() => (courseOpen = true)} title="Unterricht bearbeiten"><Icon name="settings" size={15} /></button>
       <a class="btn btn-ghost" href={href.print(cls.id, course.id)}><Icon name="print" size={15} /> Drucken</a>
       <a class="btn btn-soft" href={href.report(cls.id, course.id)}><Icon name="award" size={15} /> Zeugnisnoten</a>
       <a class="btn btn-soft" href={href.quick(cls.id, course.id)}><Icon name="zap" size={15} /> Mündliche Noten</a>
@@ -95,7 +95,7 @@
     {/snippet}
     <div class="flex items-center justify-between gap-4">
       <Segmented bind:value={period} options={[{ value: 1, label: '1. Halbjahr' }, { value: 2, label: '2. Halbjahr' }, { value: 'jahr', label: 'Schuljahr' }]} />
-      <div class="hidden items-center gap-3 text-[12px] text-slate-500 md:flex">
+      <div class="hidden items-center gap-3 text-[0.75rem] text-slate-500 md:flex">
         <span class="flex items-center gap-1"><span class="kbd">1</span>–<span class="kbd">6</span> Note</span>
         <span class="flex items-center gap-1"><span class="kbd">↵</span> weiter</span>
         <span class="flex items-center gap-1">Doppelklick: Status, Bemerkung</span>
@@ -110,27 +110,27 @@
       </Empty>
     {:else}
       <div class="card overflow-x-auto">
-        <table class="w-full border-separate border-spacing-0 text-[13px]">
+        <table class="w-full border-separate border-spacing-0 text-[0.8125rem]">
           <thead>
             <tr class="text-left align-bottom">
-              <th class="sticky left-0 z-10 min-w-52 border-b border-slate-200/70 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:border-line-dark dark:bg-panel-dark">
+              <th class="sticky left-0 z-10 min-w-52 border-b border-slate-200/70 bg-white px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400 dark:border-line-dark dark:bg-panel-dark">
                 Name
               </th>
               {#each assessments as a (a.id)}
                 {@const t = typeById(a.typeId)}
                 <th class="min-w-20 border-b border-l border-slate-200/70 px-1.5 py-2 text-center font-normal dark:border-line-dark">
                   <a href={href.assessment(cls.id, course.id, a.id)} class="group block rounded-lg px-1 py-1 transition hover:bg-brand-50 dark:hover:bg-white/5" title={a.title}>
-                    <div class="text-[11px] font-bold {t?.category === 'gross' ? 'text-brand-600 dark:text-brand-300' : 'text-slate-500'}">{t?.short ?? '?'}</div>
-                    <div class="text-[11px] tabular-nums text-slate-400">{fmtShortDate(a.date)}</div>
-                    {#if a.maxPoints}<div class="text-[10px] text-slate-400">/{String(a.maxPoints).replace('.', ',')} P</div>{/if}
+                    <div class="text-[0.6875rem] font-bold {t?.category === 'gross' ? 'text-brand-600 dark:text-brand-300' : 'text-slate-500'}">{t?.short ?? '?'}</div>
+                    <div class="text-[0.6875rem] tabular-nums text-slate-400">{fmtShortDate(a.date)}</div>
+                    {#if a.maxPoints}<div class="text-[0.625rem] text-slate-400">/{String(a.maxPoints).replace('.', ',')} P</div>{/if}
                   </a>
                 </th>
               {/each}
-              <th class="min-w-44 border-b border-l border-slate-200/70 px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:border-line-dark">Einzelnoten</th>
-              <th class="w-16 border-b border-l border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[11px] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt große Leistungsnachweise">Ø groß</th>
-              <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[11px] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt kleine Leistungsnachweise">Ø klein</th>
-              <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[11px] font-semibold text-slate-700 dark:border-line-dark dark:bg-white/[0.02] dark:text-slate-300" title="Gewichteter Gesamtschnitt nach RSO § 23">Ø gesamt</th>
-              <th class="w-14 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[11px] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Vorschlag; die Note setzt die Lehrkraft">Vorschl.</th>
+              <th class="min-w-44 border-b border-l border-slate-200/70 px-3 py-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400 dark:border-line-dark">Einzelnoten</th>
+              <th class="w-16 border-b border-l border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt große Leistungsnachweise">Ø groß</th>
+              <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt kleine Leistungsnachweise">Ø klein</th>
+              <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-700 dark:border-line-dark dark:bg-white/[0.02] dark:text-slate-300" title="Gewichteter Gesamtschnitt nach RSO § 23">Ø gesamt</th>
+              <th class="w-14 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Vorschlag; die Note setzt die Lehrkraft">Vorschl.</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +142,7 @@
                   <a href={href.student(cls.id, s.id)} class="block truncate font-medium hover:text-brand-600 {s.leftAt ? 'text-slate-400 line-through' : ''}">
                     {s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span>
                   </a>
-                  {#if s.support}<div class="truncate text-[10.5px] text-violet-600 dark:text-violet-300">{s.support}</div>{/if}
+                  {#if s.support}<div class="truncate text-[0.65625rem] text-violet-600 dark:text-violet-300">{s.support}</div>{/if}
                 </td>
                 {#each assessments as a, ci (a.id)}
                   {@const g = gradeMap.get(`${a.id}|${s.id}`)}
@@ -175,19 +175,19 @@
                 <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center tabular-nums text-slate-500 dark:border-line-dark dark:bg-white/[0.015]">{formatAvg(sum.small)}</td>
                 <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center font-semibold tabular-nums text-slate-900 dark:border-line-dark dark:bg-white/[0.015] dark:text-white">{formatAvg(sum.total)}</td>
                 <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center dark:border-line-dark dark:bg-white/[0.015]">
-                  {#if sug}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[12px] font-bold ring-1 ring-inset {GRADE_CLASS[sug]}">{sug}</span>{/if}
+                  {#if sug}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[0.75rem] font-bold ring-1 ring-inset {GRADE_CLASS[sug]}">{sug}</span>{/if}
                 </td>
               </tr>
             {/each}
           </tbody>
           {#if assessments.length}
             <tfoot>
-              <tr class="text-[12px] text-slate-500">
+              <tr class="text-[0.75rem] text-slate-500">
                 <td class="sticky left-0 bg-white px-4 py-2.5 font-medium dark:bg-panel-dark">Klassenschnitt</td>
                 {#each assessments as a (a.id)}
                   <td class="border-l border-slate-100 px-1.5 py-2.5 text-center tabular-nums dark:border-line-dark">
                     <div class="font-semibold text-slate-700 dark:text-slate-200">{columnAvg(a)}</div>
-                    <div class="text-[10.5px] text-slate-400">{filled(a)}/{students.length}</div>
+                    <div class="text-[0.65625rem] text-slate-400">{filled(a)}/{students.length}</div>
                   </td>
                 {/each}
                 <td colspan="5" class="border-l border-slate-100 dark:border-line-dark"></td>
@@ -207,7 +207,7 @@
 
       {#if warnings.length}
         <section class="mt-7 max-w-3xl">
-          <h2 class="mb-3 text-[13px] font-semibold uppercase tracking-wider text-slate-400">Hinweise nach RSO</h2>
+          <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Hinweise nach RSO</h2>
           <WarningList {warnings} />
         </section>
       {/if}

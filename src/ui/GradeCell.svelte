@@ -103,7 +103,7 @@
     {#key popKey}
       <input
         data-cell="{row}-{col}"
-        class="h-8 w-full min-w-10 rounded-lg border-0 bg-transparent text-center text-[13.5px] font-semibold tabular-nums outline-none ring-1 ring-inset ring-transparent transition placeholder:text-slate-300 hover:ring-slate-200 focus:bg-white focus:shadow-glow focus:ring-brand-400 dark:placeholder:text-slate-600 dark:hover:ring-line-dark dark:focus:bg-white/10
+        class="h-8 w-full min-w-10 rounded-lg border-0 bg-transparent text-center text-[0.84375rem] font-semibold tabular-nums outline-none ring-1 ring-inset ring-transparent transition placeholder:text-slate-300 hover:ring-slate-200 focus:bg-white focus:shadow-glow focus:ring-brand-400 dark:placeholder:text-slate-600 dark:hover:ring-line-dark dark:focus:bg-white/10
           {!focused && grade?.value && !pointsMode ? GRADE_CLASS[grade.value] : ''}
           {popKey && !focused ? 'animate-pop' : ''}
           {bad ? 'animate-shake ring-rose-400!' : ''}"

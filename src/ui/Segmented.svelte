@@ -8,7 +8,7 @@
       type="button"
       role="tab"
       aria-selected={value === o.value}
-      class="h-7 rounded-[10px] px-3 text-[12.5px] font-medium transition {value === o.value
+      class="h-7 rounded-[10px] px-3 text-[0.78125rem] font-medium transition {value === o.value
         ? 'bg-white text-slate-900 shadow-sm dark:bg-white/15 dark:text-white'
         : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}"
       onclick={() => (value = o.value)}>{o.label}</button

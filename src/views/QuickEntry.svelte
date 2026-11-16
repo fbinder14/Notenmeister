@@ -60,7 +60,7 @@
 </script>
 
 {#if !cls || !course}
-  <div class="p-8"><Empty icon="book" title="Kurs nicht gefunden" /></div>
+  <div class="p-8"><Empty icon="book" title="Unterricht nicht gefunden" /></div>
 {:else}
   <PageHeader title="Noten für mehrere erfassen" eyebrow="{cls.name} · {subjectOf(course)?.name}" back={href.course(cls.id, course.id)}>
     {#snippet actions()}
@@ -81,7 +81,7 @@
       <label><span class="label">Gewicht</span><input class="field" type="number" min="0" step="0.5" bind:value={weight} placeholder={String(type?.weight ?? 1)} /></label>
     </div>
 
-    <p class="flex items-center gap-2 text-[12.5px] text-slate-500">
+    <p class="flex items-center gap-2 text-[0.78125rem] text-slate-500">
       <Icon name="zap" size={14} class="text-brand-500" /> Zeile anklicken, Ziffer <span class="kbd">1</span>–<span class="kbd">6</span> tippen – es geht automatisch weiter. Leere Zeilen werden übersprungen.
     </p>
 
@@ -95,11 +95,11 @@
             onkeydown={(e) => onkey(e, s.id, i)}
             aria-label="Note für {s.firstName} {s.lastName}"
           />
-          <button class="w-56 truncate text-left text-[13px] font-medium" onclick={() => focusRow(i)}>{s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span></button>
+          <button class="w-56 truncate text-left text-[0.8125rem] font-medium" onclick={() => focusRow(i)}>{s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span></button>
           <div class="flex gap-1">
             {#each [1, 2, 3, 4, 5, 6] as v (v)}
               <button
-                class="h-8 w-8 rounded-lg text-[13px] font-semibold ring-1 ring-inset transition active:scale-90 {values[s.id] === v
+                class="h-8 w-8 rounded-lg text-[0.8125rem] font-semibold ring-1 ring-inset transition active:scale-90 {values[s.id] === v
                   ? `${GRADE_CLASS[v]} scale-105 shadow-soft`
                   : 'text-slate-400 ring-slate-200 hover:text-slate-700 hover:ring-slate-300 dark:ring-line-dark dark:hover:text-slate-200'}"
                 onclick={() => {
@@ -110,7 +110,7 @@
             {/each}
           </div>
           <input
-            class="field h-8 flex-1 text-[12.5px]"
+            class="field h-8 flex-1 text-[0.78125rem]"
             placeholder="Bemerkung"
             bind:value={comments[s.id]}
             disabled={!values[s.id]}

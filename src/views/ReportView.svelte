@@ -52,7 +52,7 @@
 </script>
 
 {#if !cls || !course || !ctx}
-  <div class="p-8"><Empty icon="award" title="Kurs nicht gefunden" /></div>
+  <div class="p-8"><Empty icon="award" title="Unterricht nicht gefunden" /></div>
 {:else}
   <PageHeader title="Zeugnisnoten" eyebrow="{cls.name} · {subjectOf(course)?.name}" back={href.course(cls.id, course.id)}>
     {#snippet actions()}
@@ -63,8 +63,8 @@
 
   <div class="mx-auto grid max-w-6xl gap-6 px-8 py-7 lg:grid-cols-[1fr_18rem]">
     <section class="card overflow-hidden">
-      <table class="w-full text-[13px]">
-        <thead class="bg-slate-50/80 text-left text-[11px] uppercase tracking-wider text-slate-400 dark:bg-white/[0.02]">
+      <table class="w-full text-[0.8125rem]">
+        <thead class="bg-slate-50/80 text-left text-[0.6875rem] uppercase tracking-wider text-slate-400 dark:bg-white/[0.02]">
           <tr>
             <th class="px-5 py-2.5 font-semibold">Name</th>
             <th class="px-2 py-2.5 text-center font-semibold">Ø groß</th>
@@ -82,13 +82,13 @@
               <td class="px-2 py-2 text-center tabular-nums text-slate-500">{formatAvg(r.sum.small)}</td>
               <td class="px-2 py-2 text-center font-semibold tabular-nums">{formatAvg(r.sum.total)}</td>
               <td class="px-2 py-2 text-center">
-                {#if r.suggestion}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[12px] font-bold ring-1 ring-inset {GRADE_CLASS[r.suggestion]}">{r.suggestion}</span>{/if}
+                {#if r.suggestion}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[0.75rem] font-bold ring-1 ring-inset {GRADE_CLASS[r.suggestion]}">{r.suggestion}</span>{/if}
               </td>
               <td class="px-5 py-1.5">
                 <div class="flex gap-1">
                   {#each [1, 2, 3, 4, 5, 6] as v (v)}
                     <button
-                      class="h-7 w-7 rounded-md text-[12.5px] font-semibold ring-1 ring-inset transition active:scale-90 {r.set?.value === v
+                      class="h-7 w-7 rounded-md text-[0.78125rem] font-semibold ring-1 ring-inset transition active:scale-90 {r.set?.value === v
                         ? `${GRADE_CLASS[v]} shadow-soft`
                         : 'text-slate-400 ring-slate-200 hover:text-slate-700 dark:ring-line-dark dark:hover:text-slate-200'}"
                       onclick={() => setGrade(r.s.id, r.set?.value === v ? null : (v as GradeValue))}
@@ -96,7 +96,7 @@
                     >
                   {/each}
                   {#if r.set && r.suggestion && r.set.value !== r.suggestion}
-                    <span class="ml-1 self-center text-[11px] text-amber-600" title="Weicht vom rechnerischen Vorschlag ab">≠</span>
+                    <span class="ml-1 self-center text-[0.6875rem] text-amber-600" title="Weicht vom rechnerischen Vorschlag ab">≠</span>
                   {/if}
                 </div>
               </td>
@@ -108,10 +108,10 @@
 
     <aside class="grid content-start gap-6">
       <div class="card p-5">
-        <h2 class="mb-4 text-[14px] font-semibold">Verteilung der Zeugnisnoten</h2>
+        <h2 class="mb-4 text-[0.875rem] font-semibold">Verteilung der Zeugnisnoten</h2>
         <Distribution {values} />
       </div>
-      <div class="rounded-card bg-brand-50/70 p-4 text-[12.5px] leading-relaxed text-brand-900 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-100 dark:ring-brand-500/20">
+      <div class="rounded-card bg-brand-50/70 p-4 text-[0.78125rem] leading-relaxed text-brand-900 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-100 dark:ring-brand-500/20">
         Der Vorschlag ist der gewichtete Schnitt nach RSO § 23 ({app.core.settings.rounding === 'streng' ? 'x,50 ergibt die schlechtere Note' : 'x,50 ergibt die bessere Note'}). Die Zeugnisnote setzt die Lehrkraft in pädagogischer Verantwortung (Art. 52 Abs. 3 BayEUG).
       </div>
     </aside>

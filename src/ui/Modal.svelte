@@ -63,8 +63,8 @@
     >
       <header class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 pb-4 pt-5 dark:border-line-dark">
         <div>
-          <h2 class="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
-          {#if subtitle}<p class="mt-0.5 text-[13px] text-slate-500">{subtitle}</p>{/if}
+          <h2 class="text-[1rem] font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
+          {#if subtitle}<p class="mt-0.5 text-[0.8125rem] text-slate-500">{subtitle}</p>{/if}
         </div>
         <button type="button" class="btn btn-ghost -mr-2 -mt-1 h-8 w-8 px-0" onclick={close} aria-label="Schließen">
           <Icon name="x" size={16} />

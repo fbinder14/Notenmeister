@@ -5,12 +5,14 @@
   import { app } from '../lib/state/app.svelte';
   import {
     addSingleGrade,
+    allowsMakeup,
     fmtDateTime,
     fromLocalInput,
     removeGrade,
     setAssessmentGrade,
     STATUS_LABEL,
     toLocalInput,
+    typeById,
     updateGrade,
   } from '../lib/state/actions';
   import type { Assessment, Course, Grade, GradeStatus, GradeValue, SchoolClass, Student } from '../lib/domain/types';
@@ -53,6 +55,12 @@
   const assessment = $derived(grade?.assessmentId ? course.assessments.find((a) => a.id === grade!.assessmentId) : forAssessment);
   const types = $derived(app.core.types.filter((t) => !t.archived));
   const type = $derived(app.core.types.find((t) => t.id === typeId));
+  /** Nachtermin nur anbieten, wenn die Art nachgeholt wird (nicht z. B. bei Stegreifaufgaben). */
+  const statusOptions = $derived(
+    Object.entries(STATUS_LABEL).filter(
+      ([k]) => k !== 'nachtermin' || grade?.status === 'nachtermin' || allowsMakeup(assessment ? typeById(assessment.typeId) : type),
+    ),
+  );
 
   $effect(() => {
     if (!open) return;
@@ -98,15 +106,19 @@
         {#each [1, 2, 3, 4, 5, 6] as v (v)}
           <button
             type="button"
-            disabled={forcedSix || status === 'nachtermin'}
-            class="h-11 rounded-xl text-[16px] font-semibold ring-1 ring-inset transition active:scale-95 disabled:opacity-40 {(forcedSix ? 6 : value) === v
+            disabled={forcedSix}
+            class="h-11 rounded-xl text-[1rem] font-semibold ring-1 ring-inset transition active:scale-95 disabled:opacity-40 {(forcedSix ? 6 : status === 'nachtermin' ? null : value) === v
               ? 'bg-brand-600 text-white ring-brand-600 shadow-[0_6px_16px_-6px_rgb(79_70_229/0.7)]'
               : 'bg-white text-slate-700 ring-slate-200 hover:ring-brand-300 dark:bg-white/5 dark:text-slate-200 dark:ring-line-dark'}"
-            onclick={() => (value = v as GradeValue)}>{v}</button
+            onclick={() => {
+              value = v as GradeValue;
+              // Nachtermin geschrieben: Note eintragen heißt, sie wird jetzt gewertet.
+              if (status === 'nachtermin') status = 'gewertet';
+            }}>{v}</button
           >
         {/each}
       </div>
-      {#if grade?.points != null}<p class="mt-1.5 text-[12px] text-slate-500">Aus {String(grade.points).replace('.', ',')} Punkten berechnet.</p>{/if}
+      {#if grade?.points != null}<p class="mt-1.5 text-[0.75rem] text-slate-500">Aus {String(grade.points).replace('.', ',')} Punkten berechnet.</p>{/if}
     </div>
 
     {#if !assessment}
@@ -126,7 +138,7 @@
       <label>
         <span class="label">Status</span>
         <select class="field" bind:value={status}>
-          {#each Object.entries(STATUS_LABEL) as [k, l] (k)}<option value={k}>{l}</option>{/each}
+          {#each statusOptions as [k, l] (k)}<option value={k}>{l}</option>{/each}
         </select>
       </label>
       <label><span class="label">Datum und Uhrzeit</span><input class="field" type="datetime-local" bind:value={performed} /></label>
@@ -134,7 +146,7 @@
     <label><span class="label">Bemerkung</span><textarea class="field h-20 resize-none py-2" bind:value={comment} placeholder="z. B. Thema, Grund für Nachtermin"></textarea></label>
 
     {#if grade}
-      <div class="rounded-xl bg-slate-50 p-3.5 text-[12px] text-slate-500 dark:bg-white/[0.03]">
+      <div class="rounded-xl bg-slate-50 p-3.5 text-[0.75rem] text-slate-500 dark:bg-white/[0.03]">
         <div class="flex items-center gap-2"><Icon name="clock" size={14} /> Erfasst am {fmtDateTime(grade.recordedAt)}</div>
         {#if grade.history.length}
           <div class="mt-2.5 flex items-center gap-2 font-medium text-slate-600 dark:text-slate-300"><Icon name="history" size={14} /> Verlauf</div>

@@ -11,7 +11,7 @@
     pop = false,
   }: { value: number | null; status?: GradeStatus; size?: 'sm' | 'md' | 'lg'; title?: string; pop?: boolean } = $props();
 
-  const dims = { sm: 'h-6 min-w-6 text-[12px] rounded-md', md: 'h-7 min-w-7 text-[13px] rounded-lg', lg: 'h-10 min-w-10 text-[17px] rounded-xl' };
+  const dims = { sm: 'h-6 min-w-6 text-[0.75rem] rounded-md', md: 'h-7 min-w-7 text-[0.8125rem] rounded-lg', lg: 'h-10 min-w-10 text-[1.0625rem] rounded-xl' };
 </script>
 
 {#if status === 'nachtermin'}
@@ -25,7 +25,7 @@
   >
     {value}
     {#if STATUS_SHORT[status]}
-      <sup class="absolute -right-1 -top-1.5 rounded bg-slate-900 px-0.5 text-[8px] font-bold leading-[11px] text-white dark:bg-white dark:text-slate-900">{STATUS_SHORT[status]}</sup>
+      <sup class="absolute -right-1 -top-1.5 rounded bg-slate-900 px-0.5 text-[0.5rem] font-bold leading-[11px] text-white dark:bg-white dark:text-slate-900">{STATUS_SHORT[status]}</sup>
     {/if}
   </span>
 {/if}

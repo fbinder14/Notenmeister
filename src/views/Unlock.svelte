@@ -34,18 +34,18 @@
     <div class="flex items-center gap-3">
       <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300"><Icon name="lock" /></span>
       <div>
-        <h2 class="text-[16px] font-semibold text-slate-900 dark:text-white">Gesperrt</h2>
-        <p class="text-[13px] text-slate-500">Master-Passwort eingeben, um fortzufahren.</p>
+        <h2 class="text-[1rem] font-semibold text-slate-900 dark:text-white">Gesperrt</h2>
+        <p class="text-[0.8125rem] text-slate-500">Master-Passwort eingeben, um fortzufahren.</p>
       </div>
     </div>
     <!-- svelte-ignore a11y_autofocus -->
-    <input class="field h-11 text-[15px]" type="password" placeholder="Master-Passwort" bind:value={pw} autocomplete="current-password" autofocus disabled={busy} />
-    {#if error}<p class="text-[13px] text-rose-600">{error}</p>{/if}
+    <input class="field h-11 text-[0.9375rem]" type="password" placeholder="Master-Passwort" bind:value={pw} autocomplete="current-password" autofocus disabled={busy} />
+    {#if error}<p class="text-[0.8125rem] text-rose-600">{error}</p>{/if}
     <button class="btn btn-primary h-11" disabled={!pw || busy}>
       {#if busy}<span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span> Entschlüssele …{:else}Entsperren{/if}
     </button>
     {#if fails >= 3}
-      <p class="text-center text-[12px] leading-relaxed text-slate-500">
+      <p class="text-center text-[0.75rem] leading-relaxed text-slate-500">
         Passwort vergessen? Ohne Passwort lassen sich die Daten nicht entschlüsseln. Eine ältere Sicherungsdatei lässt sich nur mit ihrem damaligen Passwort öffnen.
       </p>
     {/if}

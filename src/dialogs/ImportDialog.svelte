@@ -91,13 +91,13 @@
     {#if source === 'einfuegen'}
       <label>
         <span class="label">Namensliste einfügen – eine Zeile pro Person, z. B. „Huber, Lena“ oder „Lena Huber“ oder zwei Spalten aus Excel</span>
-        <textarea class="field h-36 resize-y py-2 font-mono text-[12.5px]" bind:value={pasted} oninput={fromPaste} placeholder={'Huber, Lena\nÖztürk, Can\n…'}></textarea>
+        <textarea class="field h-36 resize-y py-2 font-mono text-[0.78125rem]" bind:value={pasted} oninput={fromPaste} placeholder={'Huber, Lena\nÖztürk, Can\n…'}></textarea>
       </label>
     {:else if source === 'datei'}
-      <label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-[13px] text-slate-500 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-line-dark dark:hover:bg-white/5">
+      <label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-[0.8125rem] text-slate-500 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-line-dark dark:hover:bg-white/5">
         <Icon name="upload" size={22} class="text-brand-500" />
         {fileName || 'CSV- oder Excel-Datei (.xlsx) auswählen'}
-        <span class="text-[11px] text-slate-400">Die Datei wird nur in diesem Browser gelesen.</span>
+        <span class="text-[0.6875rem] text-slate-400">Die Datei wird nur in diesem Browser gelesen.</span>
         <input type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,text/csv" class="hidden" onchange={pick} />
       </label>
     {:else}
@@ -113,22 +113,22 @@
         <label><span class="label">Vorname</span><input class="field" bind:value={single.firstName} /></label>
         <button class="btn btn-primary" disabled={!single.lastName.trim() && !single.firstName.trim()}><Icon name="plus" size={15} /> Hinzufügen</button>
       </form>
-      <p class="text-[12px] text-slate-500">Mit <span class="kbd">↵</span> hinzufügen; das Formular bleibt für die nächste Person offen.</p>
+      <p class="text-[0.75rem] text-slate-500">Mit <span class="kbd">↵</span> hinzufügen; das Formular bleibt für die nächste Person offen.</p>
     {/if}
 
-    {#if error}<p class="text-[13px] text-rose-600">{error}</p>{/if}
+    {#if error}<p class="text-[0.8125rem] text-rose-600">{error}</p>{/if}
 
     {#if source !== 'einzeln' && rows.length}
       <div class="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3 dark:bg-white/[0.03]">
-        <label class="flex items-center gap-2 text-[12.5px]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={mapping.hasHeader} /> Erste Zeile ist Überschrift</label>
+        <label class="flex items-center gap-2 text-[0.78125rem]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={mapping.hasHeader} /> Erste Zeile ist Überschrift</label>
         {#if cols > 1}
-          <label class="text-[12px]">
+          <label class="text-[0.75rem]">
             <span class="label mb-1">Nachname</span>
             <select class="field h-8 w-40" bind:value={mapping.last}>
               {#each Array.from({ length: cols }, (_, i) => i) as i (i)}<option value={i}>{colLabel(i)}</option>{/each}
             </select>
           </label>
-          <label class="text-[12px]">
+          <label class="text-[0.75rem]">
             <span class="label mb-1">Vorname</span>
             <select class="field h-8 w-40" bind:value={mapping.first}>
               <option value={-1}>– im Namen enthalten –</option>
@@ -140,8 +140,8 @@
       </div>
 
       <div class="max-h-64 overflow-y-auto rounded-xl border border-slate-200 dark:border-line-dark">
-        <table class="w-full text-[13px]">
-          <thead class="sticky top-0 bg-white/90 text-left text-[11px] uppercase tracking-wider text-slate-400 backdrop-blur dark:bg-panel-dark/90">
+        <table class="w-full text-[0.8125rem]">
+          <thead class="sticky top-0 bg-white/90 text-left text-[0.6875rem] uppercase tracking-wider text-slate-400 backdrop-blur dark:bg-panel-dark/90">
             <tr><th class="px-4 py-2 font-semibold">Nachname</th><th class="px-4 py-2 font-semibold">Vorname</th><th></th></tr>
           </thead>
           <tbody>
@@ -150,7 +150,7 @@
               <tr class="border-t border-slate-100 dark:border-line-dark {dup ? 'text-slate-400' : ''}">
                 <td class="px-4 py-1.5 font-medium">{p.lastName}</td>
                 <td class="px-4 py-1.5">{p.firstName}</td>
-                <td class="px-4 py-1.5 text-right text-[11px]">{dup ? 'schon vorhanden' : ''}</td>
+                <td class="px-4 py-1.5 text-right text-[0.6875rem]">{dup ? 'schon vorhanden' : ''}</td>
               </tr>
             {/each}
           </tbody>

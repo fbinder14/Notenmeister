@@ -67,7 +67,7 @@ export function emptyCore(): Core {
     v: 1,
     settings: {
       autoLockMinutes: 10,
-      rounding: 'streng',
+      rounding: 'mild',
       theme: 'system',
       activeYearId: null,
       defaultGradeKeyId: 'key-standard',
@@ -91,6 +91,7 @@ export const SUBJECT_SUGGESTIONS: Array<Pick<Subject, 'name' | 'short'>> = [
   { name: 'Biologie', short: 'B' },
   { name: 'Geschichte', short: 'G' },
   { name: 'Geographie', short: 'Geo' },
+  { name: 'Politik und Gesellschaft', short: 'PuG' },
   { name: 'Informationstechnologie', short: 'IT' },
   { name: 'Kunst', short: 'Ku' },
   { name: 'Musik', short: 'Mu' },
@@ -106,7 +107,6 @@ export function plannedSchulaufgabenFor(subjectName: string, gradeLevel: number,
   if (i < 0 || i > 5) return null;
   const n = subjectName.toLowerCase();
   const g1 = wpf === 'I';
-  const g3 = wpf === 'IIIa' || wpf === 'IIIb';
   const pick = (row: Array<number | null>) => row[i];
   if (n.startsWith('deutsch') || n.startsWith('englisch')) return pick([4, 4, 4, 4, 3, 3]);
   if (n.startsWith('mathe')) {
@@ -122,9 +122,118 @@ export function plannedSchulaufgabenFor(subjectName: string, gradeLevel: number,
     return pick(g1 ? [null, null, null, 2, 2, 2] : [null, null, null, null, 2, 2]);
   }
   if (n.startsWith('betriebswirtschaft') || n === 'bwr') return wpf === 'II' ? pick([null, null, 3, 3, 3, 3]) : null;
-  if (n.startsWith('französisch')) return g3 ? pick([null, null, 3, 3, 3, 3]) : null;
+  if (n.startsWith('französisch')) return wpf === 'IIIa' ? pick([null, null, 3, 3, 3, 3]) : null;
   if (['kunst', 'werken', 'ernährung und gesundheit', 'sozialwesen'].some((s) => n.startsWith(s))) {
-    return g3 ? pick([null, null, 3, 3, 3, 3]) : null;
+    return wpf === 'IIIb' ? pick([null, null, 3, 3, 3, 3]) : null;
   }
   return null;
+}
+
+// ---------- Stundentafel (RSO Anlage 1, Fassung gültig ab 01.08.2026) ----------
+
+type Row = [number | null, number | null, number | null, number | null, number | null, number | null];
+type Group = Exclude<WpfGroup, ''>;
+
+/** Wochenstunden je Jahrgangsstufe 5–10; null = Fach in dieser Stufe nicht vorgesehen. */
+const SAME = {
+  religion: [2, 2, 2, 2, 2, 2],
+  deutsch: [5, 5, 4, 4, 4, 4],
+  englisch: [5, 4, 4, 4, 3, 4],
+  geschichte: [null, 2, 2, 2, 2, 2],
+  geographie: [2, 2, 2, 2, 2, null],
+  politik: [null, null, null, null, null, 2],
+  biologie: [2, 2, 2, 2, null, 2],
+  // Basissportunterricht; bis zu zwei weitere Stunden möglich (Fußnote 9).
+  sport: [2, 2, 2, 2, 2, 2],
+} satisfies Record<string, Row>;
+
+const MATHE_SPRACHE: Row = [5, 5, 3, 3, 3, 4];
+
+const STUNDENTAFEL: Record<Group, Record<string, Row>> = {
+  I: {
+    ...SAME,
+    wr: [null, null, null, null, 2, null],
+    mathematik: [5, 5, 4, 4, 5, 5],
+    physik: [null, null, 2, 2, 3, 3],
+    chemie: [null, null, null, 2, 2, 2],
+    gestaltung: [3, 2, 1, 1, 1, null],
+    musik: [2, 2, 1, 1, 1, null],
+    ernaehrung: [null, null, 2, null, null, null],
+  },
+  II: {
+    ...SAME,
+    mathematik: MATHE_SPRACHE,
+    physik: [null, null, null, 2, 2, 2],
+    chemie: [null, null, null, null, 2, 2],
+    bwr: [null, null, 3, 3, 3, 3],
+    wr: [null, null, null, 2, 2, null],
+    gestaltung: [3, 2, 1, 1, 1, null],
+    musik: [2, 2, 1, 1, 1, null],
+    ernaehrung: [null, null, 2, null, null, null],
+  },
+  IIIa: {
+    ...SAME,
+    franzoesisch: [null, null, 4, 3, 4, 4],
+    bwr: [null, null, 2, 2, null, null],
+    wr: [null, null, null, null, 2, null],
+    mathematik: MATHE_SPRACHE,
+    physik: [null, null, null, 2, 2, 2],
+    chemie: [null, null, null, null, 2, 2],
+    gestaltung: [3, 2, 1, null, null, null],
+    musik: [2, 2, 1, 1, 1, null],
+  },
+  IIIb: {
+    ...SAME,
+    wr: [null, null, null, null, 2, null],
+    mathematik: MATHE_SPRACHE,
+    physik: [null, null, null, 2, 2, 2],
+    chemie: [null, null, null, null, 2, 2],
+    // Wahlpflichtfach (Kunst, Werken, Ernährung und Gesundheit oder Sozialwesen), Fußnote 7.
+    wahlpflichtfach: [null, null, 3, 3, 3, 3],
+    gestaltung: [3, 2, 1, 1, 1, null],
+    musik: [2, 2, 1, 1, 1, 1],
+    ernaehrung: [null, null, 2, null, null, null],
+  },
+};
+
+/** Ordnet einen Fachnamen einer Zeile der Stundentafel zu. */
+function stundentafelRow(name: string, group: Group, i: number): string | null {
+  const n = name.toLowerCase().trim();
+  const has = (...p: string[]) => p.some((x) => n.startsWith(x));
+  if (has('religion', 'evangelisch', 'katholisch', 'ethik', 'kath.', 'ev.')) return 'religion';
+  if (has('deutsch')) return 'deutsch';
+  if (has('englisch')) return 'englisch';
+  if (has('französisch', 'franzoesisch')) return 'franzoesisch';
+  if (has('geschichte')) return 'geschichte';
+  if (has('geographie', 'erdkunde')) return 'geographie';
+  if (has('politik')) return 'politik';
+  if (has('biologie')) return 'biologie';
+  if (has('sport')) return 'sport';
+  if (has('mathe')) return 'mathematik';
+  if (has('physik')) return 'physik';
+  if (has('chemie')) return 'chemie';
+  if (has('betriebswirtschaft') || n === 'bwr') return 'bwr';
+  if (has('wirtschaft und recht') || n === 'wr') return 'wr';
+  if (has('musik')) return 'musik';
+  // In IIIb ab Jahrgangsstufe 7 sind diese Fächer in der Regel das Wahlpflichtfach.
+  if (group === 'IIIb' && i >= 2 && has('kunst', 'werken', 'ernährung', 'sozialwesen')) return 'wahlpflichtfach';
+  if (has('ernährung')) return 'ernaehrung';
+  if (has('kunst', 'werken', 'technisches zeichnen', 'gestaltung')) return 'gestaltung';
+  return null;
+}
+
+/**
+ * Wochenstunden laut Stundentafel (RSO Anlage 1). Ohne Wahlpflichtfächergruppe nur,
+ * wenn alle Gruppen übereinstimmen. Liefert null bei unbekanntem Fach, flexibel
+ * verteilten Stunden (Informationstechnologie) oder wenn das Fach nicht vorgesehen ist.
+ */
+export function weeklyHoursFor(subjectName: string, gradeLevel: number, wpf: WpfGroup): number | null {
+  const i = gradeLevel - 5;
+  if (i < 0 || i > 5) return null;
+  const groups: Group[] = wpf ? [wpf] : ['I', 'II', 'IIIa', 'IIIb'];
+  const values = groups.map((g) => {
+    const row = stundentafelRow(subjectName, g, i);
+    return row ? (STUNDENTAFEL[g][row]?.[i] ?? null) : null;
+  });
+  return values.every((v) => v !== null && v === values[0]) ? values[0] : null;
 }

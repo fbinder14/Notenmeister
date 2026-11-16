@@ -5,7 +5,7 @@
   import { MIN_PASSWORD_LENGTH, WrongPasswordError } from '../lib/crypto/vault';
   import { validateThresholds } from '../lib/domain/gradeKey';
   import { suggestYear, SUBJECT_COLORS } from '../lib/domain/defaults';
-  import { removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
+  import { gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
   import { backupFileName } from '../lib/storage/backupFile';
   import { chooseBackupDir, folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
   import type { AssessmentType, GradeKey } from '../lib/domain/types';
@@ -158,6 +158,25 @@
     touch();
   }
 
+  // Löschen mit Rückfrage; verwendete Schlüssel brauchen einen Ersatz.
+  let delKey = $state<GradeKey | null>(null);
+  let delReplacement = $state('');
+  const delUsage = $derived(delKey ? gradeKeyUsage(delKey.id) : []);
+  const delChanges = $derived(delKey && delReplacement ? gradeKeyChangeCount(delKey.id, delReplacement) : 0);
+  const delOthers = $derived(core.gradeKeys.filter((k) => k.id !== delKey?.id));
+  function askRemoveKey(k: GradeKey) {
+    delKey = k;
+    const others = core.gradeKeys.filter((x) => x.id !== k.id);
+    delReplacement = (others.find((x) => x.id === s.defaultGradeKeyId) ?? others[0]).id;
+  }
+  function confirmRemoveKey() {
+    if (!delKey) return;
+    const name = delKey.name;
+    removeGradeKey(delKey.id, delReplacement);
+    delKey = null;
+    toast.success(`Notenschlüssel „${name}“ gelöscht.`);
+  }
+
   // ---- Alles löschen ----
   let wipeOpen = $state(false);
   let wipeConfirm = $state('');
@@ -171,15 +190,15 @@
     <div class="mb-5 flex items-center gap-3">
       <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><Icon name="shield" size={18} /></span>
       <div>
-        <h2 class="text-[15px] font-semibold">Sicherheit und Sicherung</h2>
-        <p class="text-[12.5px] text-slate-500">AES-256-GCM, Schlüssel aus dem Master-Passwort (PBKDF2, 600.000 Runden). Exporte sind immer verschlüsselt.</p>
+        <h2 class="text-[0.9375rem] font-semibold">Sicherheit und Sicherung</h2>
+        <p class="text-[0.78125rem] text-slate-500">AES-256-GCM, Schlüssel aus dem Master-Passwort (PBKDF2, 600.000 Runden). Exporte sind immer verschlüsselt.</p>
       </div>
     </div>
     <div class="grid gap-3 sm:grid-cols-2">
       <button class="btn btn-soft h-11 justify-start" onclick={exportFile}><Icon name="download" size={16} /> Sicherung exportieren</button>
       <button class="btn btn-soft h-11 justify-start" onclick={() => { importOpen = true; importText = null; importName = ''; importPw = ''; importErr = ''; }}><Icon name="upload" size={16} /> Sicherung importieren</button>
       <button class="btn btn-soft h-11 justify-start" onclick={() => (pwOpen = true)}><Icon name="lock" size={16} /> Passwort ändern</button>
-      <label class="flex h-11 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3.5 text-[13px] dark:border-line-dark">
+      <label class="flex h-11 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3.5 text-[0.8125rem] dark:border-line-dark">
         <span class="flex items-center gap-2"><Icon name="clock" size={16} /> Automatisch sperren nach</span>
         <select class="field h-8 w-32" bind:value={s.autoLockMinutes} onchange={touch}>
           {#each [5, 10, 15, 30, 60] as m (m)}<option value={m}>{m} Minuten</option>{/each}
@@ -191,8 +210,8 @@
     <div class="mt-5 rounded-xl border border-slate-200 p-4 dark:border-line-dark">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div class="flex items-center gap-2 text-[13.5px] font-medium"><Icon name="folder" size={16} /> Automatische Sicherung in einen Ordner</div>
-          <p class="mt-0.5 text-[12px] text-slate-500">
+          <div class="flex items-center gap-2 text-[0.84375rem] font-medium"><Icon name="folder" size={16} /> Automatische Sicherung in einen Ordner</div>
+          <p class="mt-0.5 text-[0.75rem] text-slate-500">
             {#if !folderBackupSupported()}
               In diesem Browser nicht verfügbar (Chrome nötig).
             {:else if app.folderBackup.name}
@@ -215,7 +234,7 @@
       </div>
     </div>
     {#if !app.persisted}
-      <p class="mt-3 flex items-center gap-2 text-[12px] text-amber-700 dark:text-amber-300">
+      <p class="mt-3 flex items-center gap-2 text-[0.75rem] text-amber-700 dark:text-amber-300">
         <Icon name="alert" size={14} /> Der Browser hat dauerhaften Speicher nicht bestätigt. Installiere die App (Symbol in der Adressleiste) und sichere regelmäßig.
       </p>
     {/if}
@@ -223,35 +242,35 @@
 
   <!-- Darstellung und Berechnung -->
   <section class="card grid gap-5 p-6">
-    <h2 class="text-[15px] font-semibold">Darstellung und Berechnung</h2>
+    <h2 class="text-[0.9375rem] font-semibold">Darstellung und Berechnung</h2>
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <span class="text-[13px]">Design</span>
+      <span class="text-[0.8125rem]">Design</span>
       <Segmented bind:value={s.theme} options={[{ value: 'system', label: 'System' }, { value: 'hell', label: 'Hell' }, { value: 'dunkel', label: 'Dunkel' }]} />
     </div>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <div class="text-[13px]">Vorschlag für die Zeugnisnote bei x,50</div>
-        <div class="text-[12px] text-slate-500">Nur ein Vorschlag – die Note setzt immer die Lehrkraft.</div>
+        <div class="text-[0.8125rem]">Vorschlag für die Zeugnisnote bei x,50</div>
+        <div class="text-[0.75rem] text-slate-500">Nur ein Vorschlag – die Note setzt immer die Lehrkraft.</div>
       </div>
-      <Segmented bind:value={s.rounding} options={[{ value: 'streng', label: 'schlechtere Note' }, { value: 'mild', label: 'bessere Note' }]} />
+      <Segmented bind:value={s.rounding} options={[{ value: 'mild', label: 'bessere Note' }, { value: 'streng', label: 'schlechtere Note' }]} />
     </div>
   </section>
 
   <!-- Schuljahre -->
   <section class="card p-6">
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-[15px] font-semibold">Schuljahre</h2>
+      <h2 class="text-[0.9375rem] font-semibold">Schuljahre</h2>
       <button class="btn btn-soft h-8" onclick={addYear}><Icon name="plus" size={14} /> Schuljahr</button>
     </div>
     <div class="grid gap-2">
       {#each core.years as y (y.id)}
         <div class="grid grid-cols-[7rem_1fr_1fr_1fr_auto] items-center gap-2 rounded-xl p-2 {s.activeYearId === y.id ? 'bg-brand-50/70 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : ''}">
           <input class="field h-8" bind:value={y.name} onchange={touch} />
-          <label class="text-[11px] text-slate-500">Beginn<input class="field h-8" type="date" bind:value={y.start} onchange={touch} /></label>
-          <label class="text-[11px] text-slate-500">2. Halbjahr ab<input class="field h-8" type="date" bind:value={y.halfSwitch} onchange={touch} /></label>
-          <label class="text-[11px] text-slate-500">Ende<input class="field h-8" type="date" bind:value={y.end} onchange={touch} /></label>
+          <label class="text-[0.6875rem] text-slate-500">Beginn<input class="field h-8" type="date" bind:value={y.start} onchange={touch} /></label>
+          <label class="text-[0.6875rem] text-slate-500">2. Halbjahr ab<input class="field h-8" type="date" bind:value={y.halfSwitch} onchange={touch} /></label>
+          <label class="text-[0.6875rem] text-slate-500">Ende<input class="field h-8" type="date" bind:value={y.end} onchange={touch} /></label>
           {#if s.activeYearId === y.id}
-            <span class="px-3 text-[12px] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
+            <span class="px-3 text-[0.75rem] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
           {:else}
             <button class="btn btn-ghost h-8" onclick={() => activate(y.id)}>Aktivieren</button>
           {/if}
@@ -262,7 +281,7 @@
 
   <!-- Fächer -->
   <section class="card p-6">
-    <h2 class="mb-4 text-[15px] font-semibold">Fächer</h2>
+    <h2 class="mb-4 text-[0.9375rem] font-semibold">Fächer</h2>
     {#if core.subjects.length}
       <div class="grid gap-2">
         {#each core.subjects as sub (sub.id)}
@@ -274,24 +293,24 @@
             </div>
             <input class="field h-8 flex-1" value={sub.name} onchange={(e) => updateSubject(sub.id, { name: (e.target as HTMLInputElement).value })} />
             <input class="field h-8 w-20" value={sub.short} onchange={(e) => updateSubject(sub.id, { short: (e.target as HTMLInputElement).value })} />
-            <button class="btn btn-ghost h-8 w-8 px-0 text-rose-600" disabled={subjectInUse(sub.id)} title={subjectInUse(sub.id) ? 'Wird in einem Kurs verwendet' : 'Löschen'} onclick={() => removeSubject(sub.id)}><Icon name="trash" size={14} /></button>
+            <button class="btn btn-ghost h-8 w-8 px-0 text-rose-600" disabled={subjectInUse(sub.id)} title={subjectInUse(sub.id) ? 'Wird in einem Unterricht verwendet' : 'Löschen'} onclick={() => removeSubject(sub.id)}><Icon name="trash" size={14} /></button>
           </div>
         {/each}
       </div>
     {:else}
-      <p class="text-[13px] text-slate-500">Fächer legst du beim Hinzufügen eines Kurses in einer Klasse an.</p>
+      <p class="text-[0.8125rem] text-slate-500">Fächer legst du beim Hinzufügen eines Unterrichts in einer Klasse an.</p>
     {/if}
   </section>
 
   <!-- Leistungsnachweise -->
   <section class="card p-6">
     <div class="mb-1 flex items-center justify-between">
-      <h2 class="text-[15px] font-semibold">Arten von Leistungsnachweisen und Gewichte</h2>
+      <h2 class="text-[0.9375rem] font-semibold">Arten von Leistungsnachweisen und Gewichte</h2>
       <button class="btn btn-soft h-8" onclick={addType}><Icon name="plus" size={14} /> Eigene Art</button>
     </div>
-    <p class="mb-4 text-[12.5px] text-slate-500">Vorbelegt nach RSO §§ 17–19 und § 23. Das Gewicht kannst du hier allgemein und je Leistungsnachweis anpassen.</p>
-    <table class="w-full text-[13px]">
-      <thead class="text-left text-[11px] uppercase tracking-wider text-slate-400">
+    <p class="mb-4 text-[0.78125rem] text-slate-500">Vorbelegt nach RSO §§ 17–19 und § 23. Das Gewicht kannst du hier allgemein und je Leistungsnachweis anpassen.</p>
+    <table class="w-full text-[0.8125rem]">
+      <thead class="text-left text-[0.6875rem] uppercase tracking-wider text-slate-400">
         <tr><th class="py-2 font-semibold">Bezeichnung</th><th class="font-semibold">Kürzel</th><th class="font-semibold">Kategorie</th><th class="font-semibold">Form</th><th class="font-semibold">Gewicht</th><th></th></tr>
       </thead>
       <tbody>
@@ -311,7 +330,7 @@
             </td>
             <td class="pr-2"><input class="field h-8 w-20" type="number" min="0" step="0.5" bind:value={t.weight} onchange={touch} /></td>
             <td class="text-right">
-              <button class="btn btn-ghost h-8 px-2 text-[12px]" onclick={() => { t.archived = !t.archived; touch(); }}>{t.archived ? 'Einblenden' : 'Ausblenden'}</button>
+              <button class="btn btn-ghost h-8 px-2 text-[0.75rem]" onclick={() => { t.archived = !t.archived; touch(); }}>{t.archived ? 'Einblenden' : 'Ausblenden'}</button>
             </td>
           </tr>
         {/each}
@@ -322,25 +341,32 @@
   <!-- Notenschlüssel -->
   <section class="card p-6">
     <div class="mb-1 flex items-center justify-between">
-      <h2 class="text-[15px] font-semibold">Notenschlüssel</h2>
+      <h2 class="text-[0.9375rem] font-semibold">Notenschlüssel</h2>
       <button class="btn btn-soft h-8" onclick={addKey}><Icon name="plus" size={14} /> Schlüssel</button>
     </div>
-    <p class="mb-4 text-[12.5px] text-slate-500">Mindestanteil der Höchstpunktzahl in Prozent für die Noten 1 bis 5; darunter Note 6. Grenzen werden auf halbe Punkte aufgerundet.</p>
+    <p class="mb-4 text-[0.78125rem] text-slate-500">Mindestanteil der Höchstpunktzahl in Prozent für die Noten 1 bis 5; darunter Note 6. Grenzen werden auf halbe Punkte aufgerundet.</p>
     <div class="grid gap-3">
       {#each core.gradeKeys as k (k.id)}
         <div class="rounded-xl border border-slate-200 p-3 dark:border-line-dark">
           <div class="flex flex-wrap items-center gap-2">
             <input class="field h-8 w-48" bind:value={k.name} onchange={touch} />
             {#each k.thresholds as v, i (i)}
-              <label class="flex items-center gap-1 text-[12px] text-slate-500">
+              <label class="flex items-center gap-1 text-[0.75rem] text-slate-500">
                 {i + 1}:<input class="field h-8 w-16" type="number" min="0" max="100" step="0.5" value={v} onchange={(e) => setThreshold(k, i, Number((e.target as HTMLInputElement).value))} />%
               </label>
             {/each}
-            <label class="ml-auto flex items-center gap-1.5 text-[12px]">
+            <label class="ml-auto flex items-center gap-1.5 text-[0.75rem]">
               <input type="radio" name="defkey" class="accent-brand-600" checked={s.defaultGradeKeyId === k.id} onchange={() => { s.defaultGradeKeyId = k.id; touch(); }} /> Standard
             </label>
+            <button
+              class="btn btn-ghost h-8 w-8 px-0 text-rose-600"
+              disabled={core.gradeKeys.length < 2}
+              title={core.gradeKeys.length < 2 ? 'Mindestens ein Notenschlüssel muss bleiben' : 'Löschen'}
+              aria-label="Notenschlüssel {k.name} löschen"
+              onclick={() => askRemoveKey(k)}><Icon name="trash" size={14} /></button
+            >
           </div>
-          {#if keyErr[k.id]}<p class="mt-1.5 text-[12px] text-rose-600">{keyErr[k.id]}</p>{/if}
+          {#if keyErr[k.id]}<p class="mt-1.5 text-[0.75rem] text-rose-600">{keyErr[k.id]}</p>{/if}
         </div>
       {/each}
     </div>
@@ -348,23 +374,23 @@
 
   <!-- Gefahrenzone -->
   <section class="card border-rose-200 p-6 dark:border-rose-500/20">
-    <h2 class="text-[15px] font-semibold text-rose-700 dark:text-rose-300">Alle Daten in diesem Browser löschen</h2>
-    <p class="mt-1 text-[12.5px] text-slate-500">Löscht den verschlüsselten Tresor unwiderruflich. Exportierte Sicherungsdateien bleiben unberührt.</p>
+    <h2 class="text-[0.9375rem] font-semibold text-rose-700 dark:text-rose-300">Alle Daten in diesem Browser löschen</h2>
+    <p class="mt-1 text-[0.78125rem] text-slate-500">Löscht den verschlüsselten Tresor unwiderruflich. Exportierte Sicherungsdateien bleiben unberührt.</p>
     <button class="btn btn-danger mt-4" onclick={() => { wipeOpen = true; wipeConfirm = ''; }}><Icon name="trash" size={15} /> Alles löschen …</button>
   </section>
 
-  <p class="pb-4 text-center text-[11px] text-slate-400">Notenmeister 2.0 · keine Netzwerkverbindungen · keine Telemetrie</p>
+  <p class="pb-4 text-center text-[0.6875rem] text-slate-400">Notenmeister 2.0 · keine Netzwerkverbindungen · keine Telemetrie</p>
 </div>
 
 <Modal bind:open={importOpen} title="Sicherung importieren" width="max-w-md">
   <div class="grid gap-3">
-    <p class="rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">Der aktuelle Bestand wird vollständig ersetzt. Danach gilt das Passwort der Sicherung.</p>
-    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 p-4 text-[13px] text-slate-500 hover:border-brand-300 dark:border-line-dark">
+    <p class="rounded-lg bg-amber-50 px-3 py-2 text-[0.78125rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">Der aktuelle Bestand wird vollständig ersetzt. Danach gilt das Passwort der Sicherung.</p>
+    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 p-4 text-[0.8125rem] text-slate-500 hover:border-brand-300 dark:border-line-dark">
       <Icon name="upload" size={18} class="text-brand-500" /> {importName || 'Datei .notenmeister auswählen'}
       <input type="file" accept=".notenmeister,application/json" class="hidden" onchange={pick} />
     </label>
     <input class="field" type="password" placeholder="Passwort der Sicherung" bind:value={importPw} />
-    {#if importErr}<p class="text-[12.5px] text-rose-600">{importErr}</p>{/if}
+    {#if importErr}<p class="text-[0.78125rem] text-rose-600">{importErr}</p>{/if}
   </div>
   {#snippet footer()}
     <button class="btn btn-ghost" onclick={() => (importOpen = false)}>Abbrechen</button>
@@ -377,7 +403,7 @@
     <input class="field" type="password" placeholder="Bisheriges Passwort" bind:value={pwOld} autocomplete="current-password" />
     <input class="field" type="password" placeholder="Neues Passwort (mind. {MIN_PASSWORD_LENGTH} Zeichen)" bind:value={pwNew} autocomplete="new-password" />
     <input class="field" type="password" placeholder="Neues Passwort wiederholen" bind:value={pwNew2} autocomplete="new-password" />
-    {#if pwErr}<p class="text-[12.5px] text-rose-600">{pwErr}</p>{/if}
+    {#if pwErr}<p class="text-[0.78125rem] text-rose-600">{pwErr}</p>{/if}
   </form>
   {#snippet footer()}
     <button class="btn btn-ghost" onclick={() => (pwOpen = false)}>Abbrechen</button>
@@ -385,8 +411,44 @@
   {/snippet}
 </Modal>
 
+<Modal open={!!delKey} onclose={() => (delKey = null)} title="Notenschlüssel löschen?" width="max-w-md">
+  {#if delKey}
+    <div class="grid gap-3 text-[0.8125rem] leading-relaxed">
+      <p>Der Notenschlüssel <b>„{delKey.name}“</b> wird gelöscht. Das lässt sich nicht rückgängig machen.</p>
+      {#if delUsage.length || s.defaultGradeKeyId === delKey.id}
+        {#if delUsage.length}
+          <p class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+            Er wird von {delUsage.length === 1 ? 'einem Leistungsnachweis' : `${delUsage.length} Leistungsnachweisen`} verwendet:
+            {delUsage.slice(0, 4).map((u) => `${u.cls.name} ${u.a.title}`).join(', ')}{delUsage.length > 4 ? ' …' : ''}.
+            Diese wechseln auf den Ersatzschlüssel.
+          </p>
+        {/if}
+        <label>
+          <span class="label">Ersatzschlüssel</span>
+          <select class="field" bind:value={delReplacement}>
+            {#each delOthers as k (k.id)}<option value={k.id}>{k.name}</option>{/each}
+          </select>
+        </label>
+        {#if delUsage.length}
+          <p class="text-[0.75rem] {delChanges ? 'font-medium text-rose-700 dark:text-rose-300' : 'text-slate-500'}">
+            {delChanges
+              ? `${delChanges} Note${delChanges === 1 ? ' ändert' : 'n ändern'} sich dadurch. Die alten Werte bleiben im Verlauf der Note sichtbar.`
+              : 'Keine Note ändert sich dadurch.'}
+          </p>
+        {:else}
+          <p class="text-[0.75rem] text-slate-500">Er ist der Standardschlüssel; der Ersatz wird neuer Standard.</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+  {#snippet footer()}
+    <button class="btn btn-ghost" onclick={() => (delKey = null)}>Abbrechen</button>
+    <button class="btn btn-danger" onclick={confirmRemoveKey}><Icon name="trash" size={15} /> Löschen</button>
+  {/snippet}
+</Modal>
+
 <Modal bind:open={wipeOpen} title="Wirklich alles löschen?" width="max-w-md">
-  <p class="text-[13px] leading-relaxed">Alle Klassen, Schüler und Noten in diesem Browser werden unwiderruflich gelöscht. Zum Bestätigen <b>LÖSCHEN</b> eintippen.</p>
+  <p class="text-[0.8125rem] leading-relaxed">Alle Klassen, Schüler und Noten in diesem Browser werden unwiderruflich gelöscht. Zum Bestätigen <b>LÖSCHEN</b> eintippen.</p>
   <input class="field mt-3" bind:value={wipeConfirm} />
   {#snippet footer()}
     <button class="btn btn-ghost" onclick={() => (wipeOpen = false)}>Abbrechen</button>

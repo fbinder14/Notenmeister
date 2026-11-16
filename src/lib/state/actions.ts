@@ -7,6 +7,8 @@ import type {
   Course,
   Grade,
   GradeKey,
+  NoteTopic,
+  StudentNote,
   GradeStatus,
   GradeValue,
   ReportTerm,
@@ -29,6 +31,15 @@ export const STATUS_LABEL: Record<GradeStatus, string> = {
   unterschleif: 'Unterschleif (Note 6)',
   nicht_gewertet: 'Nicht gewertet',
 };
+
+/**
+ * Ob ein versäumter Leistungsnachweis dieser Art nachgeholt wird (RSO § 22):
+ * angekündigte Nachweise wie Schulaufgaben, Tests und Kurzarbeiten ja,
+ * unangekündigte wie Stegreifaufgaben nein.
+ */
+export function allowsMakeup(type: AssessmentType | undefined): boolean {
+  return !!type && type.announced && type.kind !== 'stegreifaufgabe';
+}
 
 export const STATUS_SHORT: Record<GradeStatus, string> = {
   gewertet: '',
@@ -104,7 +115,7 @@ export function subjectInUse(id: string): boolean {
 }
 
 export function removeSubject(id: string) {
-  if (subjectInUse(id)) throw new Error('Das Fach wird noch in einem Kurs verwendet.');
+  if (subjectInUse(id)) throw new Error('Das Fach wird noch in einem Unterricht verwendet.');
   app.core.subjects = app.core.subjects.filter((s) => s.id !== id);
   app.touch();
 }
@@ -167,7 +178,61 @@ export function removeStudent(cls: SchoolClass, id: string) {
     c.reportGrades = c.reportGrades.filter((r) => r.studentId !== id);
     c.excludedStudentIds = c.excludedStudentIds.filter((x) => x !== id);
   }
+  if (cls.notes) cls.notes = cls.notes.filter((n) => n.studentId !== id);
   app.touch(cls.id);
+}
+
+// ---------- Pädagogische Notizen ----------
+
+export const NOTE_TOPICS: Record<NoteTopic, string> = {
+  beobachtung: 'Beobachtung',
+  lob: 'Lob',
+  verhalten: 'Verhalten',
+  eltern: 'Elternkontakt',
+  massnahme: 'Maßnahme',
+};
+
+export function notesOf(cls: SchoolClass, studentId: string): StudentNote[] {
+  return (cls.notes ?? []).filter((n) => n.studentId === studentId).sort((a, b) => b.at.localeCompare(a.at));
+}
+
+export function addNote(cls: SchoolClass, studentId: string, input: Pick<StudentNote, 'at' | 'topic' | 'text'>): StudentNote {
+  const t = now();
+  const note: StudentNote = { id: randomId(), studentId, ...input, text: input.text.trim(), createdAt: t, updatedAt: t };
+  (cls.notes ??= []).push(note);
+  app.touch(cls.id);
+  return note;
+}
+
+export function updateNote(cls: SchoolClass, id: string, patch: Partial<Pick<StudentNote, 'at' | 'topic' | 'text'>>) {
+  const n = cls.notes?.find((x) => x.id === id);
+  if (!n) return;
+  Object.assign(n, patch, { updatedAt: now() });
+  if (patch.text !== undefined) n.text = patch.text.trim();
+  app.touch(cls.id);
+}
+
+export function removeNote(cls: SchoolClass, id: string) {
+  cls.notes = (cls.notes ?? []).filter((n) => n.id !== id);
+  app.touch(cls.id);
+}
+
+/** Noten eines Schülers in einem Unterricht, chronologisch, mit Bezeichnung und Gewicht. */
+export function studentGradeRows(c: Course, studentId: string): Array<{ g: Grade; date: string; name: string; weight: number }> {
+  const byId = new Map(c.assessments.map((a) => [a.id, a]));
+  return c.grades
+    .filter((g) => g.studentId === studentId)
+    .map((g) => {
+      const a = g.assessmentId ? byId.get(g.assessmentId) : undefined;
+      const t = typeById(a ? a.typeId : g.typeId);
+      return {
+        g,
+        date: a ? a.date : g.performedAt.slice(0, 10),
+        name: a ? a.title : `${t?.name ?? 'Note'}${g.title ? ` · ${g.title}` : ''}`,
+        weight: a ? (a.weight ?? t?.weight ?? 1) : (g.weight ?? t?.weight ?? 1),
+      };
+    })
+    .sort((x, y) => x.date.localeCompare(y.date));
 }
 
 // ---------- Kurse ----------
@@ -228,6 +293,45 @@ export function updateAssessment(cls: SchoolClass, course: Course, id: string, p
     }
   }
   app.touch(cls.id);
+}
+
+// ---------- Notenschlüssel ----------
+
+interface KeyUse {
+  cls: SchoolClass;
+  course: Course;
+  a: Assessment;
+}
+
+/** Leistungsnachweise mit Punkten, deren Noten nach diesem Schlüssel berechnet werden. */
+export function gradeKeyUsage(keyId: string): KeyUse[] {
+  const out: KeyUse[] = [];
+  for (const cls of app.classes)
+    for (const course of cls.courses)
+      for (const a of course.assessments) if (a.maxPoints && gradeKeyById(a.gradeKeyId).id === keyId) out.push({ cls, course, a });
+  return out;
+}
+
+/** Wie viele gewertete Noten sich beim Umstellen auf den Ersatzschlüssel ändern würden. */
+export function gradeKeyChangeCount(keyId: string, replacementId: string): number {
+  const repl = gradeKeyById(replacementId);
+  let n = 0;
+  for (const { course, a } of gradeKeyUsage(keyId))
+    for (const g of course.grades)
+      if (g.assessmentId === a.id && g.points !== null && g.status === 'gewertet' && gradeFromPoints(g.points, a.maxPoints!, repl) !== g.value) n++;
+  return n;
+}
+
+/**
+ * Löscht einen Notenschlüssel. Leistungsnachweise, die ihn verwenden, wechseln auf den
+ * Ersatzschlüssel; Noten aus Punkten werden neu berechnet (mit Eintrag im Verlauf).
+ */
+export function removeGradeKey(keyId: string, replacementId: string) {
+  if (keyId === replacementId || app.core.gradeKeys.length < 2) return;
+  for (const { cls, course, a } of gradeKeyUsage(keyId)) updateAssessment(cls, course, a.id, { gradeKeyId: replacementId });
+  if (app.core.settings.defaultGradeKeyId === keyId) app.core.settings.defaultGradeKeyId = replacementId;
+  app.core.gradeKeys = app.core.gradeKeys.filter((k) => k.id !== keyId);
+  app.touch();
 }
 
 export function removeAssessment(cls: SchoolClass, course: Course, id: string) {

@@ -170,6 +170,21 @@ export interface Course {
   reportGrades: ReportGrade[];
 }
 
+/** Art einer pädagogischen Notiz (zum Filtern für Elterngespräche und Konferenzen). */
+export type NoteTopic = 'beobachtung' | 'lob' | 'verhalten' | 'eltern' | 'massnahme';
+
+/** Pädagogische Notiz zu einer Schülerin oder einem Schüler. */
+export interface StudentNote {
+  id: ID;
+  studentId: ID;
+  /** Zeitpunkt des Ereignisses (änderbar, vorbelegt mit „jetzt“). */
+  at: string;
+  topic: NoteTopic;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Eine Klasse mit allen Kursen und Noten: ein eigener verschlüsselter Block. */
 export interface SchoolClass {
   v: 1;
@@ -180,6 +195,8 @@ export interface SchoolClass {
   wpf: WpfGroup;
   students: Student[];
   courses: Course[];
+  /** Pädagogische Notizen; fehlt in älteren Datenständen. */
+  notes?: StudentNote[];
   createdAt: string;
 }
 
