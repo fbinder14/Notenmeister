@@ -16,7 +16,7 @@
   const students = $derived(cls && course ? courseStudents(cls, course).filter((s) => !s.leftAt) : []);
 
   const types = $derived(app.core.types.filter((t) => !t.archived && t.category === 'klein'));
-  let typeId = $state('typ-unterrichtsbeitrag');
+  let typeId = $state('typ-rechenschaftsablage');
   let title = $state('');
   let when = $state(toLocalInput(new Date().toISOString()));
   let weight = $state<number | null>(null);

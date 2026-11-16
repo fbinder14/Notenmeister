@@ -25,7 +25,7 @@
     course,
     student,
     grade = null,
-    defaultTypeId = 'typ-unterrichtsbeitrag',
+    defaultTypeId = 'typ-rechenschaftsablage',
     onclose,
     forAssessment = null,
   }: {
