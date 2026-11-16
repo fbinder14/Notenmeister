@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app } from '../lib/state/app.svelte';
-  import { addSingleGrade, courseStudents, findClass, findCourse, fromLocalInput, subjectOf, toLocalInput } from '../lib/state/actions';
+  import { addSingleGrade, courseStudents, findClass, findCourse, fmtShortDate, fromLocalInput, subjectOf, toLocalInput, yearOf } from '../lib/state/actions';
+  import { formatAvg, halfOf, weightedAverage } from '../lib/domain/grading';
   import { go, href } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
   import type { GradeValue } from '../lib/domain/types';
@@ -24,6 +25,27 @@
 
   const type = $derived(app.core.types.find((t) => t.id === typeId));
   const count = $derived(Object.values(values).filter(Boolean).length);
+
+  /** Bisherige Noten der gewählten Art im Halbjahr des gewählten Datums – wer wurde schon abgefragt? */
+  const year = $derived(cls ? yearOf(cls) : undefined);
+  const half = $derived(year && when ? halfOf(when.slice(0, 10), year) : null);
+  const prior = $derived.by(() => {
+    const m = new Map<string, { n: number; last: string }>();
+    const vals: { value: number; weight: number }[] = [];
+    if (!course || !year || !half) return { m, avg: '–', total: 0 };
+    let total = 0;
+    for (const g of course.grades) {
+      if (g.assessmentId || g.typeId !== typeId || halfOf(g.performedAt.slice(0, 10), year) !== half) continue;
+      const e = m.get(g.studentId) ?? { n: 0, last: '' };
+      e.n++;
+      if (g.performedAt > e.last) e.last = g.performedAt;
+      m.set(g.studentId, e);
+      total++;
+      if (g.value !== null && g.status !== 'nicht_gewertet' && g.status !== 'nachtermin') vals.push({ value: g.value, weight: 1 });
+    }
+    return { m, avg: formatAvg(weightedAverage(vals)), total };
+  });
+  const reached = $derived(students.filter((s) => prior.m.has(s.id)).length);
 
   function focusRow(i: number) {
     document.querySelector<HTMLInputElement>(`[data-quick="${i}"]`)?.focus();
@@ -81,12 +103,28 @@
       <label><span class="label">Gewicht</span><input class="field" type="number" min="0" step="0.5" bind:value={weight} placeholder={String(type?.weight ?? 1)} /></label>
     </div>
 
+    <div class="card grid grid-cols-3 divide-x divide-slate-100 text-center dark:divide-line-dark">
+      <div class="p-3">
+        <div class="text-[0.6875rem] text-slate-500">Bereits bewertet ({half}. Halbjahr)</div>
+        <div class="text-[1.25rem] font-semibold tabular-nums text-slate-900 dark:text-white">{reached}<span class="text-[0.875rem] font-normal text-slate-400"> / {students.length}</span></div>
+      </div>
+      <div class="p-3">
+        <div class="text-[0.6875rem] text-slate-500">Noten „{type?.short}“ bisher</div>
+        <div class="text-[1.25rem] font-semibold tabular-nums text-slate-900 dark:text-white">{prior.total}</div>
+      </div>
+      <div class="p-3">
+        <div class="text-[0.6875rem] text-slate-500">Schnitt bisher</div>
+        <div class="text-[1.25rem] font-semibold tabular-nums text-slate-900 dark:text-white">{prior.avg}</div>
+      </div>
+    </div>
+
     <p class="flex items-center gap-2 text-[0.78125rem] text-slate-500">
       <Icon name="zap" size={14} class="text-brand-500" /> Zeile anklicken, Ziffer <span class="kbd">1</span>–<span class="kbd">6</span> tippen – es geht automatisch weiter. Leere Zeilen werden übersprungen.
     </p>
 
     <div class="card divide-y divide-slate-100 overflow-hidden dark:divide-line-dark">
       {#each students as s, i (s.id)}
+        {@const p = prior.m.get(s.id)}
         <div class="group relative flex items-center gap-3 px-4 py-2 transition focus-within:bg-brand-50/60 hover:bg-slate-50 dark:focus-within:bg-brand-500/10 dark:hover:bg-white/[0.02]">
           <input
             data-quick={i}
@@ -96,6 +134,10 @@
             aria-label="Note für {s.firstName} {s.lastName}"
           />
           <button class="w-56 truncate text-left text-[0.8125rem] font-medium" onclick={() => focusRow(i)}>{s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span></button>
+          <span
+            class="w-20 shrink-0 text-[0.6875rem] tabular-nums {p ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}"
+            title={p ? `${p.n}× „${type?.name}“ in diesem Halbjahr, zuletzt am ${fmtShortDate(p.last.slice(0, 10))}` : `In diesem Halbjahr noch keine Note „${type?.name}“`}
+          >{p ? `✓ ${p.n}× · ${fmtShortDate(p.last.slice(0, 10))}` : 'noch nicht'}</span>
           <div class="flex gap-1">
             {#each [1, 2, 3, 4, 5, 6] as v (v)}
               <button

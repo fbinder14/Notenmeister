@@ -185,6 +185,34 @@ export interface StudentNote {
   updatedAt: string;
 }
 
+/** Art eines Logbuch-Eintrags. */
+export type LogKind = 'grade' | 'grade_removed' | 'assessment_added' | 'assessment_removed' | 'note_added' | 'report_grade';
+
+/**
+ * Logbuch-Eintrag („Letzte Aktionen“ auf der Startseite). Enthält nur Verweise,
+ * keine Namen: Namen werden erst beim Anzeigen aufgelöst, und mit einer
+ * Schülerin oder einem Schüler verschwinden auch deren Einträge.
+ */
+export interface LogEntry {
+  id: ID;
+  at: string; // ISO-Zeitpunkt der Aktion
+  kind: LogKind;
+  courseId?: ID;
+  studentId?: ID;
+  assessmentId?: ID;
+  /** Art bei Einzelnoten oder angelegten Leistungsnachweisen. */
+  typeId?: ID;
+  value?: GradeValue | null;
+  /** Nur bei Änderungen: vorheriger Wert. */
+  prev?: GradeValue | null;
+  changed?: boolean;
+  status?: GradeStatus;
+  /** Titel des Leistungsnachweises (für gelöschte Nachweise). */
+  title?: string;
+  topic?: NoteTopic;
+  term?: ReportTerm;
+}
+
 /** Eine Klasse mit allen Kursen und Noten: ein eigener verschlüsselter Block. */
 export interface SchoolClass {
   v: 1;
@@ -197,6 +225,8 @@ export interface SchoolClass {
   courses: Course[];
   /** Pädagogische Notizen; fehlt in älteren Datenständen. */
   notes?: StudentNote[];
+  /** Logbuch der letzten Aktionen; fehlt in älteren Datenständen. */
+  log?: LogEntry[];
   createdAt: string;
 }
 

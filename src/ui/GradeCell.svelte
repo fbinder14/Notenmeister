@@ -1,12 +1,15 @@
 <script lang="ts">
   import { gradeFromPoints } from '../lib/domain/gradeKey';
-  import type { Assessment, Grade, GradeKey, GradeValue } from '../lib/domain/types';
+  import { ABSENT_COMMENT, allowsMakeup, typeById } from '../lib/state/actions';
+  import type { Assessment, Grade, GradeKey, GradeStatus, GradeValue } from '../lib/domain/types';
   import GradeBadge from './GradeBadge.svelte';
   import { GRADE_CLASS } from './colors';
 
   /**
    * Eingabezelle im Notenbuch. Ziffern 1–6 (bzw. Punkte) eintippen,
    * ↵ oder ↓ springt zur nächsten Zeile, ↑ zur vorherigen, Entf löscht.
+   * X trägt „nicht teilgenommen“ ein: bei nachzuholenden Nachweisen als
+   * Nachtermin (RSO § 22), sonst als nicht gewertet.
    */
   let {
     grade,
@@ -22,7 +25,7 @@
     gradeKey: GradeKey;
     row: number;
     col: number;
-    oncommit: (input: { value: GradeValue | null; points: number | null }) => void;
+    oncommit: (input: { value: GradeValue | null; points: number | null; status?: GradeStatus; comment?: string }) => void;
     onopen: () => void;
   } = $props();
 
@@ -41,17 +44,48 @@
     if (!focused) text = shown;
   });
 
+  /** Bemerkung „nicht teilgenommen“ beim Überschreiben mit einer Note wieder entfernen. */
+  const clearAbsent = $derived(grade?.comment === ABSENT_COMMENT ? { comment: '' } : {});
+
   function move(delta: number) {
-    const el = document.querySelector<HTMLInputElement>(`[data-cell="${row + delta}-${col}"]`);
+    const el = document.querySelector<HTMLElement>(`[data-cell="${row + delta}-${col}"]`);
     if (el) {
       el.focus();
-      el.select();
+      if (el instanceof HTMLInputElement) el.select();
+    }
+  }
+
+  function markAbsent() {
+    const status: GradeStatus = allowsMakeup(typeById(assessment.typeId)) ? 'nachtermin' : 'nicht_gewertet';
+    oncommit({ value: null, points: null, status, comment: grade?.comment || ABSENT_COMMENT });
+    popKey++;
+  }
+
+  /** Tastatur auf einer Zelle mit Sonderstatus (NT, nicht gewertet …). */
+  function onspecialkey(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      move(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      move(-1);
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      oncommit({ value: null, points: null });
+    } else if (!pointsMode && /^[1-6]$/.test(e.key) && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      oncommit({ value: Number(e.key) as GradeValue, points: null, status: 'gewertet', ...clearAbsent });
+      move(1);
     }
   }
 
   function commit(): boolean {
     const raw = text.trim().replace(',', '.');
     if (raw === shown.replace(',', '.')) return true;
+    if (/^x$/i.test(raw)) {
+      markAbsent();
+      return true;
+    }
     if (raw === '') {
       oncommit({ value: null, points: null });
       return true;
@@ -59,10 +93,10 @@
     if (pointsMode) {
       const p = Number(raw);
       if (!Number.isFinite(p) || p < 0 || p > assessment.maxPoints!) return fail();
-      oncommit({ value: gradeFromPoints(p, assessment.maxPoints!, gradeKey), points: p });
+      oncommit({ value: gradeFromPoints(p, assessment.maxPoints!, gradeKey), points: p, ...clearAbsent });
     } else {
       if (!/^[1-6]$/.test(raw)) return fail();
-      oncommit({ value: Number(raw) as GradeValue, points: null });
+      oncommit({ value: Number(raw) as GradeValue, points: null, ...clearAbsent });
     }
     popKey++;
     return true;
@@ -90,12 +124,25 @@
       e.preventDefault();
       text = e.key;
       if (commit()) move(1);
+    } else if ((e.key === 'x' || e.key === 'X') && !e.metaKey && !e.ctrlKey) {
+      // X = nicht teilgenommen, sofort übernehmen und weiter.
+      e.preventDefault();
+      text = '';
+      markAbsent();
+      move(1);
     }
   }
 </script>
 
 {#if special && grade}
-  <button type="button" class="mx-auto flex h-8 w-full items-center justify-center rounded-lg transition hover:bg-slate-900/5 dark:hover:bg-white/5" onclick={onopen} title={grade.comment || 'Status bearbeiten'}>
+  <button
+    type="button"
+    data-cell="{row}-{col}"
+    class="mx-auto flex h-8 w-full items-center justify-center rounded-lg outline-none ring-1 ring-inset ring-transparent transition hover:bg-slate-900/5 focus:ring-brand-400 dark:hover:bg-white/5"
+    onclick={onopen}
+    onkeydown={onspecialkey}
+    title={grade.comment || 'Status bearbeiten'}
+  >
     <GradeBadge value={grade.value} status={grade.status} />
   </button>
 {:else}

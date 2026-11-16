@@ -81,6 +81,7 @@
           <h2 class="text-[0.875rem] font-semibold">Sammeleingabe</h2>
           <p class="text-[0.75rem] text-slate-500">
             {#if a.maxPoints}Punkte eintragen (max. {String(a.maxPoints).replace('.', ',')}), <span class="kbd">↵</span> springt weiter. Die Note wird berechnet.{:else}Ziffer 1–6 tippen – es geht automatisch weiter.{/if}
+            <span class="kbd">X</span> = nicht teilgenommen{makeup ? ' (Nachtermin)' : ''}.
           </p>
         </div>
         <div class="flex shrink-0 items-center gap-2">
@@ -130,7 +131,7 @@
                   gradeKey={key}
                   row={i}
                   col={0}
-                  oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, v.value === null && v.points === null ? null : { ...v, comment: g?.comment ?? '' })}
+                  oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, !v.status && v.value === null && v.points === null ? null : { comment: g?.comment ?? '', ...v })}
                   onopen={() => (dlg = { student: s, grade: g ?? null, a })}
                 />
               </td>
