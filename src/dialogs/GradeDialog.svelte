@@ -25,7 +25,7 @@
     course,
     student,
     grade = null,
-    defaultTypeId = 'typ-unterrichtsbeitrag',
+    defaultTypeId = 'typ-rechenschaftsablage',
     onclose,
     forAssessment = null,
   }: {
@@ -71,6 +71,18 @@
     typeId = grade?.typeId ?? defaultTypeId;
     weight = grade?.weight ?? null;
     performed = toLocalInput(grade?.performedAt ?? new Date().toISOString());
+  });
+
+  /** Verlauf, neueste Änderung zuerst; je Eintrag nur, was sich damals geändert hat. */
+  const changes = $derived.by(() => {
+    if (!grade) return [];
+    const hs = grade.history;
+    return hs
+      .map((h, i) => {
+        const after = i + 1 < hs.length ? hs[i + 1] : grade!;
+        return { h, noteChanged: h.value !== after.value || h.status !== after.status, commentChanged: h.comment !== after.comment };
+      })
+      .reverse();
   });
 
   const forcedSix = $derived(status === 'versaeumt' || status === 'verweigert' || status === 'unterschleif');
@@ -151,12 +163,19 @@
         {#if grade.history.length}
           <div class="mt-2.5 flex items-center gap-2 font-medium text-slate-600 dark:text-slate-300"><Icon name="history" size={14} /> Verlauf</div>
           <ul class="mt-1.5 grid gap-1">
-            {#each [...grade.history].reverse() as h, i (i)}
-              <li class="flex items-center gap-2">
-                <span class="tabular-nums">{fmtDateTime(h.at)}</span>
-                <span>vorher:</span>
-                <GradeBadge value={h.value} status={h.status} size="sm" />
-                {#if h.comment}<span class="truncate italic">„{h.comment}“</span>{/if}
+            {#each changes as c, i (i)}
+              <li class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span class="tabular-nums">{fmtDateTime(c.h.at)}</span>
+                {#if c.h.restoredFrom}<span>Wiederhergestellt (gelöscht am {fmtDateTime(c.h.restoredFrom)})</span>{/if}
+                {#if c.noteChanged}
+                  <span>Note vorher:</span>
+                  <GradeBadge value={c.h.value} status={c.h.status} size="sm" />
+                {/if}
+                {#if c.commentChanged}<span class="truncate italic">Bemerkung vorher: „{c.h.comment || '–'}“</span>{/if}
+                {#if c.h.performedAt}<span>Datum der Leistung vorher: {fmtDateTime(c.h.performedAt)}</span>{/if}
+                {#if c.h.typeId !== undefined}<span>Art vorher: {typeById(c.h.typeId)?.name ?? '–'}</span>{/if}
+                {#if c.h.weight !== undefined}<span>Gewicht vorher: {c.h.weight ?? 'Standard'}</span>{/if}
+                {#if c.h.title !== undefined}<span>Thema vorher: „{c.h.title || '–'}“</span>{/if}
               </li>
             {/each}
           </ul>

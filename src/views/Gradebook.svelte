@@ -25,6 +25,7 @@
   import GradeBadge from '../ui/GradeBadge.svelte';
   import GradeCell from '../ui/GradeCell.svelte';
   import WarningList from '../ui/WarningList.svelte';
+  import GradeTrash from '../ui/GradeTrash.svelte';
   import AssessmentDialog from '../dialogs/AssessmentDialog.svelte';
   import CourseDialog from '../dialogs/CourseDialog.svelte';
   import GradeDialog from '../dialogs/GradeDialog.svelte';
@@ -77,6 +78,25 @@
     return formatAvg(weightedAverage(vals));
   }
 
+  /** Einzelnoten (Rechenschaftsablage, Unterrichtsbeitrag …) je Art im gewählten Zeitraum. */
+  const singleStats = $derived.by(() => {
+    if (!course || !year) return [];
+    const ids = new Set(students.map((s) => s.id));
+    const m = new Map<string, { students: Set<string>; n: number; vals: { value: number; weight: number }[] }>();
+    for (const g of course.grades) {
+      if (g.assessmentId || !g.typeId || !ids.has(g.studentId)) continue;
+      if (period !== 'jahr' && halfOf(g.performedAt.slice(0, 10), year) !== period) continue;
+      const e = m.get(g.typeId) ?? { students: new Set<string>(), n: 0, vals: [] };
+      e.students.add(g.studentId);
+      e.n++;
+      if (g.value !== null && g.status !== 'nicht_gewertet' && g.status !== 'nachtermin') e.vals.push({ value: g.value, weight: 1 });
+      m.set(g.typeId, e);
+    }
+    return [...m.entries()]
+      .map(([typeId, e]) => ({ t: typeById(typeId), reached: e.students.size, n: e.n, avg: formatAvg(weightedAverage(e.vals)) }))
+      .sort((x, y) => (x.t?.name ?? '').localeCompare(y.t?.name ?? ''));
+  });
+
   function filled(a: Assessment): number {
     return students.filter((s) => gradeMap.has(`${a.id}|${s.id}`)).length;
   }
@@ -98,6 +118,7 @@
       <div class="hidden items-center gap-3 text-[0.75rem] text-slate-500 md:flex">
         <span class="flex items-center gap-1"><span class="kbd">1</span>–<span class="kbd">6</span> Note</span>
         <span class="flex items-center gap-1"><span class="kbd">↵</span> weiter</span>
+        <span class="flex items-center gap-1"><span class="kbd">X</span> nicht teilgenommen</span>
         <span class="flex items-center gap-1">Doppelklick: Status, Bemerkung</span>
       </div>
     </div>
@@ -153,7 +174,7 @@
                       gradeKey={gradeKeyById(a.gradeKeyId)}
                       row={ri}
                       col={ci}
-                      oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, v.value === null && v.points === null ? null : { ...v, comment: g?.comment ?? '' })}
+                      oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, !v.status && v.value === null && v.points === null ? null : { comment: g?.comment ?? '', ...v })}
                       onopen={() => (gradeDlg = { student: s, grade: g ?? null, a })}
                     />
                   </td>
@@ -180,7 +201,7 @@
               </tr>
             {/each}
           </tbody>
-          {#if assessments.length}
+          {#if assessments.length || singleStats.length}
             <tfoot>
               <tr class="text-[0.75rem] text-slate-500">
                 <td class="sticky left-0 bg-white px-4 py-2.5 font-medium dark:bg-panel-dark">Klassenschnitt</td>
@@ -190,7 +211,21 @@
                     <div class="text-[0.65625rem] text-slate-400">{filled(a)}/{students.length}</div>
                   </td>
                 {/each}
-                <td colspan="5" class="border-l border-slate-100 dark:border-line-dark"></td>
+                <td class="border-l border-slate-100 px-3 py-2 align-top dark:border-line-dark">
+                  <div class="grid gap-1">
+                    {#each singleStats as st (st.t?.id)}
+                      <div
+                        class="flex items-baseline gap-1.5 whitespace-nowrap"
+                        title="{st.t?.name}: {st.reached} von {students.length} Schülerinnen und Schülern mindestens einmal bewertet, {st.n} Note{st.n === 1 ? '' : 'n'}, Schnitt {st.avg}"
+                      >
+                        <span class="w-7 text-[0.6875rem] font-bold text-slate-500">{st.t?.short ?? '?'}</span>
+                        <span class="font-semibold tabular-nums text-slate-700 dark:text-slate-200">{st.reached}/{students.length}</span>
+                        <span class="text-[0.65625rem] text-slate-400">· {st.n} Noten · Ø {st.avg}</span>
+                      </div>
+                    {/each}
+                  </div>
+                </td>
+                <td colspan="4" class="border-l border-slate-100 dark:border-line-dark"></td>
               </tr>
             </tfoot>
           {/if}
@@ -211,6 +246,8 @@
           <WarningList {warnings} />
         </section>
       {/if}
+
+      <GradeTrash {cls} {course} />
     {/if}
   </div>
 

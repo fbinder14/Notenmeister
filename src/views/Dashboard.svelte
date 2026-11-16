@@ -7,6 +7,7 @@
   import Icon from '../ui/Icon.svelte';
   import Empty from '../ui/Empty.svelte';
   import WarningList from '../ui/WarningList.svelte';
+  import Logbook from '../ui/Logbook.svelte';
   import { SUBJECT_TINT } from '../ui/colors';
 
   let { onnewclass }: { onnewclass: () => void } = $props();
@@ -66,6 +67,7 @@
 
     <div class="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
       <section>
+        <div class="mb-7"><Logbook {classes} /></div>
         <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Meine Unterrichte</h2>
         <div class="grid gap-3 sm:grid-cols-2">
           {#each recent as { cls, course, last } (course.id)}

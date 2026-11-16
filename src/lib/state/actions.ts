@@ -1,12 +1,15 @@
 import { randomId } from '../crypto/encoding';
 import { plannedSchulaufgabenFor, SUBJECT_COLORS } from '../domain/defaults';
 import { gradeFromPoints } from '../domain/gradeKey';
+import { appendLog } from '../domain/logbook';
 import type {
   Assessment,
+  DeletedGrade,
   AssessmentType,
   Course,
   Grade,
   GradeKey,
+  LogEntry,
   NoteTopic,
   StudentNote,
   GradeStatus,
@@ -20,6 +23,22 @@ import type {
 import { app } from './app.svelte';
 
 const now = () => new Date().toISOString();
+
+/** Schreibt einen Eintrag ins Logbuch der Klasse (ohne zu speichern – das macht der Aufrufer). */
+function log(cls: SchoolClass, entry: Omit<LogEntry, 'id' | 'at'>) {
+  const e: LogEntry = { id: randomId(), at: now(), ...entry };
+  for (const k of Object.keys(e) as (keyof LogEntry)[]) if (e[k] === undefined) delete e[k];
+  cls.log = appendLog(cls.log ?? [], e);
+}
+
+/** Leert das Logbuch aller Klassen. */
+export function clearLog() {
+  for (const cls of app.classes) {
+    if (!cls.log?.length) continue;
+    cls.log = [];
+    app.touch(cls.id);
+  }
+}
 
 export const SIX_STATUSES: GradeStatus[] = ['versaeumt', 'verweigert', 'unterschleif'];
 
@@ -40,6 +59,9 @@ export const STATUS_LABEL: Record<GradeStatus, string> = {
 export function allowsMakeup(type: AssessmentType | undefined): boolean {
   return !!type && type.announced && type.kind !== 'stegreifaufgabe';
 }
+
+/** Bemerkung, die bei Eingabe von „X“ (nicht teilgenommen) gesetzt wird. */
+export const ABSENT_COMMENT = 'nicht teilgenommen';
 
 export const STATUS_SHORT: Record<GradeStatus, string> = {
   gewertet: '',
@@ -179,6 +201,8 @@ export function removeStudent(cls: SchoolClass, id: string) {
     c.excludedStudentIds = c.excludedStudentIds.filter((x) => x !== id);
   }
   if (cls.notes) cls.notes = cls.notes.filter((n) => n.studentId !== id);
+  if (cls.log) cls.log = cls.log.filter((e) => e.studentId !== id);
+  if (cls.trash) cls.trash = cls.trash.filter((d) => d.grade.studentId !== id);
   app.touch(cls.id);
 }
 
@@ -199,7 +223,9 @@ export function notesOf(cls: SchoolClass, studentId: string): StudentNote[] {
 export function addNote(cls: SchoolClass, studentId: string, input: Pick<StudentNote, 'at' | 'topic' | 'text'>): StudentNote {
   const t = now();
   const note: StudentNote = { id: randomId(), studentId, ...input, text: input.text.trim(), createdAt: t, updatedAt: t };
-  (cls.notes ??= []).push(note);
+  cls.notes ??= [];
+  cls.notes.push(note);
+  log(cls, { kind: 'note_added', studentId, topic: note.topic });
   app.touch(cls.id);
   return note;
 }
@@ -263,6 +289,8 @@ export function updateCourse(cls: SchoolClass, course: Course, patch: Partial<Om
 
 export function removeCourse(cls: SchoolClass, id: string) {
   cls.courses = cls.courses.filter((c) => c.id !== id);
+  if (cls.log) cls.log = cls.log.filter((e) => e.courseId !== id);
+  if (cls.trash) cls.trash = cls.trash.filter((d) => d.courseId !== id);
   app.touch(cls.id);
 }
 
@@ -275,6 +303,7 @@ export function addAssessment(
 ): Assessment {
   const item: Assessment = { ...a, id: randomId(), createdAt: now() };
   course.assessments.push(item);
+  log(cls, { kind: 'assessment_added', courseId: course.id, assessmentId: item.id, typeId: item.typeId, title: item.title });
   app.touch(cls.id);
   return item;
 }
@@ -335,8 +364,13 @@ export function removeGradeKey(keyId: string, replacementId: string) {
 }
 
 export function removeAssessment(cls: SchoolClass, course: Course, id: string) {
-  course.assessments = course.assessments.filter((a) => a.id !== id);
+  const a = course.assessments.find((x) => x.id === id);
+  for (const g of course.grades) if (g.assessmentId === id) toTrash(cls, course, g, a, true);
+  course.assessments = course.assessments.filter((x) => x.id !== id);
   course.grades = course.grades.filter((g) => g.assessmentId !== id);
+  // Einträge zu den Noten dieses Nachweises entfallen mit ihm.
+  if (cls.log) cls.log = cls.log.filter((e) => e.assessmentId !== id);
+  if (a) log(cls, { kind: 'assessment_removed', courseId: course.id, typeId: a.typeId, title: a.title });
   app.touch(cls.id);
 }
 
@@ -347,15 +381,61 @@ function recordChange(g: Grade, patch: Partial<Pick<Grade, 'value' | 'points' | 
   Object.assign(g, patch);
 }
 
+/** Tiefe Kopie ohne reaktive Proxies (Noten sind reine JSON-Daten). */
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+/** Legt eine gelöschte Note samt Verlauf in den Papierkorb der Klasse. */
+function toTrash(cls: SchoolClass, course: Course, g: Grade, a: Assessment | undefined, withAssessment = false) {
+  const d: DeletedGrade = { grade: clone(g), courseId: course.id, deletedAt: now() };
+  if (a) d.assessmentTitle = a.title;
+  if (withAssessment) d.withAssessment = true;
+  // Erst zuweisen, dann über den reaktiven Proxy anhängen – sonst geht der Eintrag verloren.
+  cls.trash ??= [];
+  cls.trash.push(d);
+}
+
+/** Ob sich ein Zeitpunkt auf die Minute genau unterscheidet (Eingabefelder kennen keine Sekunden). */
+function minuteDiffers(a: string, b: string): boolean {
+  return Math.floor(new Date(a).getTime() / 60_000) !== Math.floor(new Date(b).getTime() / 60_000);
+}
+
+/** Holt eine gelöschte Note aus dem Papierkorb zurück, sofern ihr Leistungsnachweis noch besteht und kein Ersatz eingetragen ist. */
+export function restoreGrade(cls: SchoolClass, d: DeletedGrade): boolean {
+  const course = cls.courses.find((c) => c.id === d.courseId);
+  if (!course || !canRestore(cls, d)) return false;
+  const g = clone(d.grade);
+  g.history.push({ at: now(), value: g.value, points: g.points, status: g.status, comment: g.comment, restoredFrom: d.deletedAt });
+  course.grades.push(g);
+  cls.trash = (cls.trash ?? []).filter((x) => x !== d);
+  log(cls, { kind: 'grade', courseId: course.id, studentId: g.studentId, assessmentId: g.assessmentId ?? undefined, typeId: g.assessmentId ? undefined : (g.typeId ?? undefined), value: g.value, status: g.status });
+  app.touch(cls.id);
+  return true;
+}
+
+export function canRestore(cls: SchoolClass, d: DeletedGrade): boolean {
+  const course = cls.courses.find((c) => c.id === d.courseId);
+  if (!course || !cls.students.some((s) => s.id === d.grade.studentId)) return false;
+  if (!d.grade.assessmentId) return true;
+  return course.assessments.some((a) => a.id === d.grade.assessmentId) && !course.grades.some((g) => g.assessmentId === d.grade.assessmentId && g.studentId === d.grade.studentId);
+}
+
+/** Entfernt Einträge endgültig aus dem Papierkorb (alle der Klasse oder einen). */
+export function purgeTrash(cls: SchoolClass, d?: DeletedGrade) {
+  cls.trash = d ? (cls.trash ?? []).filter((x) => x !== d) : [];
+  app.touch(cls.id);
+}
+
 export interface GradeInput {
   value: GradeValue | null;
   points?: number | null;
   status?: GradeStatus;
   comment?: string;
   performedAt?: string;
+  /** Zeitpunkt der Erfassung, falls er vor dem Speichern liegt (Sammeleingabe). */
+  recordedAt?: string;
 }
 
-function normalize(input: GradeInput): Required<Omit<GradeInput, 'performedAt'>> {
+function normalize(input: GradeInput): Required<Omit<GradeInput, 'performedAt' | 'recordedAt'>> {
   const status = input.status ?? 'gewertet';
   let value = input.value;
   if (SIX_STATUSES.includes(status)) value = 6;
@@ -368,7 +448,11 @@ export function setAssessmentGrade(cls: SchoolClass, course: Course, assessment:
   const i = course.grades.findIndex((g) => g.assessmentId === assessment.id && g.studentId === studentId);
   const existing = i >= 0 ? course.grades[i] : undefined;
   if (!input || (input.value === null && input.points == null && (input.status ?? 'gewertet') === 'gewertet' && !input.comment)) {
-    if (existing) course.grades.splice(i, 1);
+    if (existing) {
+      toTrash(cls, course, existing, assessment);
+      course.grades.splice(i, 1);
+      log(cls, { kind: 'grade_removed', courseId: course.id, studentId, assessmentId: assessment.id, prev: existing.value });
+    }
     app.touch(cls.id);
     return;
   }
@@ -376,8 +460,14 @@ export function setAssessmentGrade(cls: SchoolClass, course: Course, assessment:
   if (existing) {
     const same =
       existing.value === n.value && existing.points === n.points && existing.status === n.status && existing.comment === n.comment;
-    if (!same) recordChange(existing, n);
+    if (!same) {
+      if (existing.value !== n.value || existing.status !== n.status) {
+        log(cls, { kind: 'grade', changed: true, courseId: course.id, studentId, assessmentId: assessment.id, value: n.value, prev: existing.value, status: n.status });
+      }
+      recordChange(existing, n);
+    }
   } else {
+    log(cls, { kind: 'grade', courseId: course.id, studentId, assessmentId: assessment.id, value: n.value, status: n.status });
     const t = now();
     course.grades.push({
       id: randomId(),
@@ -415,10 +505,11 @@ export function addSingleGrade(
     title: title.trim(),
     ...normalize(input),
     performedAt: input.performedAt ?? t,
-    recordedAt: t,
+    recordedAt: input.recordedAt && input.recordedAt < t ? input.recordedAt : t,
     history: [],
   };
   course.grades.push(g);
+  log(cls, { kind: 'grade', courseId: course.id, studentId, typeId, value: g.value, status: g.status });
   app.touch(cls.id);
   return g;
 }
@@ -430,16 +521,60 @@ export function updateGrade(
 ) {
   const n = normalize(input);
   const changed = g.value !== n.value || g.points !== n.points || g.status !== n.status || g.comment !== n.comment;
-  if (changed) recordChange(g, n);
-  if (input.performedAt && input.performedAt !== g.performedAt) g.performedAt = input.performedAt;
-  if (input.title !== undefined) g.title = input.title.trim();
-  if (input.typeId !== undefined && !g.assessmentId) g.typeId = input.typeId;
-  if (input.weight !== undefined && !g.assessmentId) g.weight = input.weight;
+  if (g.value !== n.value || g.status !== n.status) {
+    const course = cls.courses.find((c) => c.grades.includes(g));
+    log(cls, {
+      kind: 'grade',
+      changed: true,
+      courseId: course?.id,
+      studentId: g.studentId,
+      assessmentId: g.assessmentId ?? undefined,
+      typeId: g.assessmentId ? undefined : (input.typeId ?? g.typeId ?? undefined),
+      value: n.value,
+      prev: g.value,
+      status: n.status,
+    });
+  }
+  // Geänderte Angaben zur Leistung kommen mit ihrem vorherigen Wert in den Verlauf.
+  const meta: Partial<Pick<Grade, 'performedAt' | 'title' | 'typeId' | 'weight'>> = {};
+  const prev: Partial<Pick<Grade, 'performedAt' | 'title' | 'typeId' | 'weight'>> = {};
+  if (input.performedAt && minuteDiffers(input.performedAt, g.performedAt)) {
+    meta.performedAt = input.performedAt;
+    prev.performedAt = g.performedAt;
+  }
+  if (input.title !== undefined && input.title.trim() !== g.title) {
+    meta.title = input.title.trim();
+    prev.title = g.title;
+  }
+  if (!g.assessmentId && input.typeId !== undefined && input.typeId !== g.typeId) {
+    meta.typeId = input.typeId;
+    prev.typeId = g.typeId;
+  }
+  if (!g.assessmentId && input.weight !== undefined && input.weight !== g.weight) {
+    meta.weight = input.weight;
+    prev.weight = g.weight;
+  }
+  if (changed || Object.keys(meta).length) {
+    g.history.push({ at: now(), value: g.value, points: g.points, status: g.status, comment: g.comment, ...prev });
+    Object.assign(g, changed ? n : {}, meta);
+  }
   app.touch(cls.id);
 }
 
 export function removeGrade(cls: SchoolClass, course: Course, id: string) {
-  course.grades = course.grades.filter((g) => g.id !== id);
+  const g = course.grades.find((x) => x.id === id);
+  if (g) {
+    toTrash(cls, course, g, g.assessmentId ? course.assessments.find((a) => a.id === g.assessmentId) : undefined);
+    log(cls, {
+      kind: 'grade_removed',
+      courseId: course.id,
+      studentId: g.studentId,
+      assessmentId: g.assessmentId ?? undefined,
+      typeId: g.assessmentId ? undefined : (g.typeId ?? undefined),
+      prev: g.value,
+    });
+  }
+  course.grades = course.grades.filter((x) => x.id !== id);
   app.touch(cls.id);
 }
 
@@ -447,6 +582,8 @@ export function removeGrade(cls: SchoolClass, course: Course, id: string) {
 
 export function setReportGrade(cls: SchoolClass, course: Course, studentId: string, term: ReportTerm, value: GradeValue | null) {
   const i = course.reportGrades.findIndex((r) => r.studentId === studentId && r.term === term);
+  const prev = i >= 0 ? course.reportGrades[i].value : null;
+  if (prev !== value) log(cls, { kind: 'report_grade', courseId: course.id, studentId, term, value, prev });
   if (value === null) {
     if (i >= 0) course.reportGrades.splice(i, 1);
   } else if (i >= 0) {
