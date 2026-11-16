@@ -110,6 +110,24 @@ export interface GradeChange {
   points: number | null;
   status: GradeStatus;
   comment: string;
+  /** Vorherige Angaben zur Leistung; nur gesetzt, wenn sie sich mit dieser Änderung geändert haben. */
+  performedAt?: string;
+  title?: string;
+  typeId?: ID | null;
+  weight?: number | null;
+  /** Nur bei Wiederherstellung: Zeitpunkt, zu dem die Note gelöscht worden war. */
+  restoredFrom?: string;
+}
+
+/** Gelöschte Note im Papierkorb der Klasse – bleibt mit Verlauf nachvollziehbar. */
+export interface DeletedGrade {
+  grade: Grade;
+  courseId: ID;
+  deletedAt: string;
+  /** Titel des Leistungsnachweises zum Zeitpunkt der Löschung. */
+  assessmentTitle?: string;
+  /** Gelöscht zusammen mit dem ganzen Leistungsnachweis. */
+  withAssessment?: boolean;
 }
 
 export interface Grade {
@@ -227,6 +245,8 @@ export interface SchoolClass {
   notes?: StudentNote[];
   /** Logbuch der letzten Aktionen; fehlt in älteren Datenständen. */
   log?: LogEntry[];
+  /** Papierkorb gelöschter Noten; fehlt in älteren Datenständen. */
+  trash?: DeletedGrade[];
   createdAt: string;
 }
 

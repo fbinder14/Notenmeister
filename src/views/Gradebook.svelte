@@ -25,6 +25,7 @@
   import GradeBadge from '../ui/GradeBadge.svelte';
   import GradeCell from '../ui/GradeCell.svelte';
   import WarningList from '../ui/WarningList.svelte';
+  import GradeTrash from '../ui/GradeTrash.svelte';
   import AssessmentDialog from '../dialogs/AssessmentDialog.svelte';
   import CourseDialog from '../dialogs/CourseDialog.svelte';
   import GradeDialog from '../dialogs/GradeDialog.svelte';
@@ -245,6 +246,8 @@
           <WarningList {warnings} />
         </section>
       {/if}
+
+      <GradeTrash {cls} {course} />
     {/if}
   </div>
 
