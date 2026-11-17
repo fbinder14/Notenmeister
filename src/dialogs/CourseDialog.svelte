@@ -20,7 +20,9 @@
 
   $effect(() => {
     if (!open) return;
-    subjectId = course?.subjectId ?? app.core.subjects[0]?.id ?? '__new';
+    // Neues Fach: kein Fach vorschlagen, das die Klasse schon hat.
+    const taken = new Set(cls.courses.map((c) => c.subjectId));
+    subjectId = course?.subjectId ?? app.core.subjects.find((x) => !taken.has(x.id))?.id ?? '__new';
     hours = course?.weeklyHours ?? 2;
     promotion = course?.promotionSubject ?? true;
     planned = course?.plannedSchulaufgaben ?? 0;
@@ -82,7 +84,7 @@
     <label>
       <span class="label">Fach</span>
       <select class="field" bind:value={subjectId}>
-        {#each app.core.subjects as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
+        {#each app.core.subjects as s (s.id)}<option value={s.id}>{s.name}{!course && cls.courses.some((c) => c.subjectId === s.id) ? ' (bereits angelegt)' : ''}</option>{/each}
         <option value="__new">+ Neues Fach …</option>
       </select>
     </label>
