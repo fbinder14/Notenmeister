@@ -11,6 +11,8 @@ import type {
   GradeKey,
   LogEntry,
   NoteTopic,
+  Observation,
+  ObservationPhase,
   StudentNote,
   GradeStatus,
   GradeValue,
@@ -200,6 +202,7 @@ export function removeStudent(cls: SchoolClass, id: string) {
     c.reportGrades = c.reportGrades.filter((r) => r.studentId !== id);
     c.excludedStudentIds = c.excludedStudentIds.filter((x) => x !== id);
   }
+  for (const c of cls.courses) if (c.observations) c.observations = c.observations.filter((p) => p.studentId !== id);
   if (cls.notes) cls.notes = cls.notes.filter((n) => n.studentId !== id);
   if (cls.log) cls.log = cls.log.filter((e) => e.studentId !== id);
   if (cls.trash) cls.trash = cls.trash.filter((d) => d.grade.studentId !== id);
@@ -240,6 +243,60 @@ export function updateNote(cls: SchoolClass, id: string, patch: Partial<Pick<Stu
 
 export function removeNote(cls: SchoolClass, id: string) {
   cls.notes = (cls.notes ?? []).filter((n) => n.id !== id);
+  app.touch(cls.id);
+}
+
+// ---------- Unterrichtsbeobachtung ----------
+
+/** Startet eine Beobachtungsphase (oder liefert die bereits laufende). */
+export function startObservation(cls: SchoolClass, course: Course, studentId: string): ObservationPhase {
+  const running = course.observations?.find((p) => p.studentId === studentId && !p.closedAt);
+  if (running) return running;
+  const p: ObservationPhase = { id: randomId(), studentId, typeId: 'typ-unterrichtsbeitrag', startedAt: now(), entries: [] };
+  course.observations ??= [];
+  course.observations.push(p);
+  app.touch(cls.id);
+  return course.observations[course.observations.length - 1];
+}
+
+export function addObservation(cls: SchoolClass, phase: ObservationPhase, input: Pick<Observation, 'at' | 'stars' | 'text'>) {
+  const t = now();
+  phase.entries.push({ id: randomId(), ...input, text: input.text.trim(), createdAt: t, updatedAt: t });
+  app.touch(cls.id);
+}
+
+export function updateObservation(cls: SchoolClass, phase: ObservationPhase, id: string, patch: Partial<Pick<Observation, 'at' | 'stars' | 'text'>>) {
+  const o = phase.entries.find((x) => x.id === id);
+  if (!o) return;
+  Object.assign(o, patch, { updatedAt: now() });
+  if (patch.text !== undefined) o.text = patch.text.trim();
+  app.touch(cls.id);
+}
+
+export function removeObservation(cls: SchoolClass, phase: ObservationPhase, id: string) {
+  phase.entries = phase.entries.filter((x) => x.id !== id);
+  app.touch(cls.id);
+}
+
+/** Schließt die Phase mit einer Note ab (Einzelnote der Art der Phase). */
+export function closeObservation(
+  cls: SchoolClass,
+  course: Course,
+  phase: ObservationPhase,
+  input: { value: GradeValue; performedAt: string; comment: string },
+): Grade {
+  const g = addSingleGrade(cls, course, phase.studentId, phase.typeId, '', { value: input.value, comment: input.comment, performedAt: input.performedAt }, null, {
+    observationId: phase.id,
+  });
+  phase.closedAt = now();
+  phase.gradeId = g.id;
+  app.touch(cls.id);
+  return g;
+}
+
+/** Verwirft eine laufende Phase samt Beobachtungen, ohne Note. */
+export function discardObservation(cls: SchoolClass, course: Course, phase: ObservationPhase) {
+  course.observations = (course.observations ?? []).filter((p) => p.id !== phase.id);
   app.touch(cls.id);
 }
 
@@ -494,7 +551,7 @@ export function addSingleGrade(
   title: string,
   input: GradeInput,
   weight: number | null = null,
-  replacesAssessmentId?: string,
+  extra: Partial<Pick<Grade, 'replacesAssessmentId' | 'observationId'>> = {},
 ): Grade {
   const t = now();
   const g: Grade = {
@@ -504,7 +561,8 @@ export function addSingleGrade(
     typeId,
     weight,
     title: title.trim(),
-    ...(replacesAssessmentId ? { replacesAssessmentId } : {}),
+    ...(extra.replacesAssessmentId ? { replacesAssessmentId: extra.replacesAssessmentId } : {}),
+    ...(extra.observationId ? { observationId: extra.observationId } : {}),
     ...normalize(input),
     performedAt: input.performedAt ?? t,
     recordedAt: input.recordedAt && input.recordedAt < t ? input.recordedAt : t,

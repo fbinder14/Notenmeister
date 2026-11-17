@@ -7,6 +7,7 @@
     addSingleGrade,
     allowsMakeup,
     fmtDateTime,
+    fmtShortDate,
     fromLocalInput,
     removeGrade,
     setAssessmentGrade,
@@ -17,6 +18,9 @@
   } from '../lib/state/actions';
   import type { Assessment, Course, Grade, GradeStatus, GradeValue, SchoolClass, Student } from '../lib/domain/types';
   import { toast } from '../lib/state/toast.svelte';
+  import { href } from '../lib/state/router.svelte';
+  import { observationStats } from '../lib/domain/observation';
+  import Stars from '../ui/Stars.svelte';
 
   /** Bearbeitet eine Einzelnote oder legt eine neue an (grade = null). */
   let {
@@ -42,6 +46,10 @@
     /** Neue Einzelnote als Ersatz für diesen versäumten Leistungsnachweis. */
     replaces?: Assessment | null;
   } = $props();
+
+  /** Unterrichtsbeobachtung, aus der diese Note entstand. */
+  const fromObservation = $derived(grade?.observationId ? course.observations?.find((p) => p.id === grade!.observationId) : undefined);
+  const obsStats = $derived(observationStats(fromObservation?.entries ?? []));
 
   /** Versäumter Nachweis, den diese Note ersetzt (neu oder bestehend). */
   const replaced = $derived(replaces ?? (grade?.replacesAssessmentId ? course.assessments.find((a) => a.id === grade!.replacesAssessmentId) : undefined));
@@ -104,7 +112,7 @@
     } else if (forAssessment) {
       setAssessmentGrade(cls, course, forAssessment, student.id, input);
     } else {
-      addSingleGrade(cls, course, student.id, typeId, title, input, weight, replaces?.id);
+      addSingleGrade(cls, course, student.id, typeId, title, input, weight, replaces ? { replacesAssessmentId: replaces.id } : {});
       toast.success(`Note für ${student.firstName} gespeichert.`);
     }
     open = false;
@@ -119,6 +127,17 @@
 
 <Modal bind:open title={grade ? 'Note bearbeiten' : replaces ? 'Ersatznote erfassen' : 'Einzelnote erfassen'} subtitle="{student.firstName} {student.lastName}{assessment ? ` · ${assessment.title}` : ''}" width="max-w-lg">
   <form id="grade-form" onsubmit={save} class="grid gap-4">
+    {#if fromObservation}
+      <a
+        href={href.observation(cls.id, course.id, student.id)}
+        onclick={() => (open = false)}
+        class="-mb-1 flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2 text-[0.78125rem] text-brand-800 transition hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-200"
+      >
+        <Icon name="eye" size={14} />
+        <span>Aus Unterrichtsbeobachtung{obsStats.first ? ` ${fmtShortDate(obsStats.first)}–${fmtShortDate(obsStats.last!)}` : ''} · {obsStats.count} Beobachtung{obsStats.count === 1 ? '' : 'en'}</span>
+        <span class="ml-auto flex items-center gap-1"><Stars value={obsStats.avg} size={12} /></span>
+      </a>
+    {/if}
     {#if replaced}
       <p class="-mb-1 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-[0.78125rem] text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
         Ersatz für die versäumte {replacedLabel}.

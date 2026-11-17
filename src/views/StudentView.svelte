@@ -10,6 +10,7 @@
     NOTE_TOPICS,
     notesOf,
     removeNote,
+    startObservation,
     STATUS_LABEL,
     studentGradeRows,
     subjectOf,
@@ -17,7 +18,9 @@
     updateNote,
     yearOf,
   } from '../lib/state/actions';
-  import { href } from '../lib/state/router.svelte';
+  import { go, href } from '../lib/state/router.svelte';
+  import { openPhase } from '../lib/domain/observation';
+  import ObservationBadge from '../ui/ObservationBadge.svelte';
   import type { Course, NoteTopic, StudentNote } from '../lib/domain/types';
   import Modal from '../ui/Modal.svelte';
   import PageHeader from '../ui/PageHeader.svelte';
@@ -149,9 +152,23 @@
       {@const all = summarize(entriesFor(c, s.id, ctx, 'jahr'))}
       <section class="card overflow-hidden {printing === 'notizen' ? 'no-print' : ''}" style="break-inside: avoid">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 dark:border-line-dark">
-          <a href={href.course(cls.id, c.id)} class="flex items-center gap-2.5 text-[0.9375rem] font-semibold hover:text-brand-600">
-            <span class="h-2.5 w-2.5 rounded-full {SUBJECT_DOT[subj?.color ?? 'slate']}"></span>{subj?.name}
-          </a>
+          <div class="flex flex-wrap items-center gap-3">
+            <a href={href.course(cls.id, c.id)} class="flex items-center gap-2.5 text-[0.9375rem] font-semibold hover:text-brand-600">
+              <span class="h-2.5 w-2.5 rounded-full {SUBJECT_DOT[subj?.color ?? 'slate']}"></span>{subj?.name}
+            </a>
+            {#if openPhase(c, s.id)}
+              <span class="no-print"><ObservationBadge phase={openPhase(c, s.id)!} link={href.observation(cls.id, c.id, s.id)} /></span>
+            {:else}
+              <button
+                class="no-print btn btn-ghost h-6 px-2 text-[0.6875rem] text-slate-500"
+                onclick={() => { startObservation(cls, c, s.id); go(href.observation(cls.id, c.id, s.id)); }}
+                title="Unterrichtsbeobachtung für {subj?.name} starten"
+              ><Icon name="eye" size={13} /> Beobachtung starten</button>
+              {#if c.observations?.some((p) => p.studentId === s.id)}
+                <a class="no-print text-[0.6875rem] text-slate-400 hover:text-brand-600" href={href.observation(cls.id, c.id, s.id)}>frühere Beobachtungen</a>
+              {/if}
+            {/if}
+          </div>
           <div class="flex gap-5 text-[0.75rem] text-slate-500">
             <span>1. Hj. <b class="tabular-nums text-slate-800 dark:text-slate-100">{formatAvg(h1.total)}</b></span>
             <span>Schuljahr <b class="tabular-nums text-slate-800 dark:text-slate-100">{formatAvg(all.total)}</b></span>

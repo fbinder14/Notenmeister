@@ -12,6 +12,7 @@
   import AssessmentView from './AssessmentView.svelte';
   import QuickEntry from './QuickEntry.svelte';
   import ReportView from './ReportView.svelte';
+  import ObservationView from './ObservationView.svelte';
   import StudentView from './StudentView.svelte';
   import PrintCourse from './PrintCourse.svelte';
   import Settings from './Settings.svelte';
@@ -200,6 +201,8 @@
           <QuickEntry classId={r.classId} courseId={r.courseId} />
         {:else if r.name === 'report'}
           <ReportView classId={r.classId} courseId={r.courseId} />
+        {:else if r.name === 'observation'}
+          <ObservationView classId={r.classId} courseId={r.courseId} studentId={r.studentId} />
         {:else if r.name === 'student'}
           <StudentView classId={r.classId} studentId={r.studentId} />
         {:else if r.name === 'print'}
