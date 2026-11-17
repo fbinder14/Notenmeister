@@ -18,6 +18,19 @@ export function counts(g: Grade): boolean {
   return g.status === 'gewertet' || g.status === 'versaeumt' || g.status === 'verweigert' || g.status === 'unterschleif';
 }
 
+/**
+ * Versäumter Leistungsnachweis ohne Nachtermin: „nicht gewertet“ ohne Note.
+ * Hier ist stattdessen eine Ersatznote (z. B. Rechenschaftsablage) erforderlich.
+ */
+export function needsReplacement(g: Grade | undefined): boolean {
+  return !!g && !!g.assessmentId && g.status === 'nicht_gewertet' && g.value === null;
+}
+
+/** Einzelnote, die den versäumten Leistungsnachweis ersetzt. */
+export function replacementFor(course: Course, assessmentId: string, studentId: string): Grade | undefined {
+  return course.grades.find((g) => !g.assessmentId && g.studentId === studentId && g.replacesAssessmentId === assessmentId);
+}
+
 export function halfOf(dateIso: string, year: SchoolYear): Half {
   return dateIso.slice(0, 10) < year.halfSwitch ? 1 : 2;
 }

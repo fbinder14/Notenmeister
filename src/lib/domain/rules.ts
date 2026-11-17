@@ -1,4 +1,4 @@
-import { counts, entriesFor, halfOf, type Ctx } from './grading';
+import { counts, entriesFor, halfOf, needsReplacement, replacementFor, type Ctx } from './grading';
 import type { AssessmentType, Core, Course, Half, Period, SchoolClass, SchoolYear, Student } from './types';
 
 export type Severity = 'warn' | 'info';
@@ -54,12 +54,16 @@ export function studentCompleteness(course: Course, studentId: string, ctx: Ctx,
     if (!course.testModel && small.length < minSmall) missing.push(`${pre}${small.length} von ${minSmall} kleinen Leistungsnachweisen`);
     if (oral && !small.some((e) => e.mode === 'muendlich')) missing.push(`${pre}mündlicher Leistungsnachweis fehlt`);
     let ungraded = 0;
+    let replace = 0;
     for (const a of course.assessments) {
       if (halfOf(a.date, ctx.year) !== h) continue;
       const g = course.grades.find((x) => x.assessmentId === a.id && x.studentId === studentId);
-      if (!g || (g.status !== 'nicht_gewertet' && !counts(g))) ungraded++;
+      if (needsReplacement(g)) {
+        if (!replacementFor(course, a.id, studentId)) replace++;
+      } else if (!g || (g.status !== 'nicht_gewertet' && !counts(g))) ungraded++;
     }
     if (ungraded) missing.push(`${pre}${ungraded} Leistungsnachweis${ungraded === 1 ? '' : 'e'} ohne Note`);
+    if (replace) missing.push(`${pre}${replace} Ersatznote${replace === 1 ? '' : 'n'} offen`);
     const openSingles = course.grades.filter(
       (g) => !g.assessmentId && g.studentId === studentId && g.status === 'nachtermin' && halfOf(g.performedAt.slice(0, 10), ctx.year) === h,
     ).length;

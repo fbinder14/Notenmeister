@@ -138,3 +138,8 @@
   main { padding: 0 !important; overflow: visible !important; }
 }
 .print-only { display: none; }
+
+/* Versäumter Leistungsnachweis: schraffierte Lücke statt Note. */
+@utility hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(148 163 184 / 0.55) 0 1.5px, transparent 1.5px 6px);
+}

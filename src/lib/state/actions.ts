@@ -494,6 +494,7 @@ export function addSingleGrade(
   title: string,
   input: GradeInput,
   weight: number | null = null,
+  replacesAssessmentId?: string,
 ): Grade {
   const t = now();
   const g: Grade = {
@@ -503,6 +504,7 @@ export function addSingleGrade(
     typeId,
     weight,
     title: title.trim(),
+    ...(replacesAssessmentId ? { replacesAssessmentId } : {}),
     ...normalize(input),
     performedAt: input.performedAt ?? t,
     recordedAt: input.recordedAt && input.recordedAt < t ? input.recordedAt : t,

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { gradeFromPoints } from '../lib/domain/gradeKey';
+  import { needsReplacement } from '../lib/domain/grading';
   import { ABSENT_COMMENT, allowsMakeup, typeById } from '../lib/state/actions';
   import type { Assessment, Grade, GradeKey, GradeStatus, GradeValue } from '../lib/domain/types';
   import GradeBadge from './GradeBadge.svelte';
@@ -19,6 +20,7 @@
     col,
     oncommit,
     onopen,
+    replacedBy = '',
   }: {
     grade: Grade | undefined;
     assessment: Assessment;
@@ -27,7 +29,11 @@
     col: number;
     oncommit: (input: { value: GradeValue | null; points: number | null; status?: GradeStatus; comment?: string }) => void;
     onopen: () => void;
+    /** Bei versäumtem Nachweis: Kurzbeschreibung der Ersatznote, leer solange sie fehlt. */
+    replacedBy?: string;
   } = $props();
+
+  const absent = $derived(needsReplacement(grade));
 
   const pointsMode = $derived(!!assessment.maxPoints);
   const special = $derived(!!grade && grade.status !== 'gewertet');
@@ -141,9 +147,15 @@
     class="mx-auto flex h-8 w-full items-center justify-center rounded-lg outline-none ring-1 ring-inset ring-transparent transition hover:bg-slate-900/5 focus:ring-brand-400 dark:hover:bg-white/5"
     onclick={onopen}
     onkeydown={onspecialkey}
-    title={grade.comment || 'Status bearbeiten'}
+    title={absent
+      ? `Gefehlt – ${replacedBy ? `ersetzt durch ${replacedBy}` : 'Ersatznote offen'}${grade.comment && grade.comment !== ABSENT_COMMENT ? `\n${grade.comment}` : ''}`
+      : grade.comment || 'Status bearbeiten'}
   >
-    <GradeBadge value={grade.value} status={grade.status} />
+    {#if absent}
+      <span class="hatch inline-block h-7 w-9 rounded-lg ring-1 ring-inset {replacedBy ? 'opacity-50 ring-slate-200 dark:ring-line-dark' : 'ring-slate-300 dark:ring-white/15'}" aria-label="gefehlt"></span>
+    {:else}
+      <GradeBadge value={grade.value} status={grade.status} />
+    {/if}
   </button>
 {:else}
   <div class="relative flex items-center justify-center gap-1">

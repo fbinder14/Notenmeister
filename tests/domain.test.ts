@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultGradeKeys, defaultTypes, emptyCore, plannedSchulaufgabenFor } from '../src/lib/domain/defaults';
 import { gradeFromPoints, pointRanges, pointThresholds, validateThresholds } from '../src/lib/domain/gradeKey';
-import { entriesFor, formatAvg, summarize, suggestGrade, weightedAverage, type Ctx } from '../src/lib/domain/grading';
+import { entriesFor, formatAvg, needsReplacement, replacementFor, summarize, suggestGrade, weightedAverage, type Ctx } from '../src/lib/domain/grading';
 import { classWarnings, courseWarnings, studentCompleteness } from '../src/lib/domain/rules';
 import type { Course, Grade, GradeStatus, GradeValue, SchoolClass, SchoolYear } from '../src/lib/domain/types';
 
@@ -235,9 +235,37 @@ describe('Vollständigkeit je Halbjahr', () => {
     expect(r.missing.join(' ')).toMatch(/1 Leistungsnachweis ohne Note/);
   });
 
-  it('nicht gewertete Schulaufgabe gilt als erledigt; Testmodell braucht nur den mündlichen', () => {
-    const c = course({ testModel: true, assessments: [sa], grades: [grade('s1', null, { assessmentId: 'a1', typeId: null, status: 'nicht_gewertet' }), grade('s1', 2)] });
+  it('nicht gewertete Note gilt als erledigt; Testmodell braucht nur den mündlichen', () => {
+    const c = course({ testModel: true, assessments: [sa], grades: [grade('s1', 4, { assessmentId: 'a1', typeId: null, status: 'nicht_gewertet' }), grade('s1', 2)] });
     expect(studentCompleteness(c, 's1', ctx, 1).complete).toBe(true);
     expect(studentCompleteness(c, 's1', ctx, 'jahr').missing.join(' ')).toMatch(/0 von mindestens 5 angesagten Tests/);
+  });
+});
+
+describe('Ersatznote bei versäumtem Leistungsnachweis', () => {
+  const ex = { id: 'ex1', typeId: 'typ-stegreifaufgabe', title: '', date: '2026-11-12', weight: null, maxPoints: null, gradeKeyId: null, createdAt: '' };
+
+  it('erkennt Fehlen ohne Note und findet die Ersatznote', () => {
+    const absent = grade('s1', null, { assessmentId: 'ex1', typeId: null, status: 'nicht_gewertet' });
+    expect(needsReplacement(absent)).toBe(true);
+    expect(needsReplacement(grade('s1', 3, { assessmentId: 'ex1', typeId: null, status: 'nicht_gewertet' }))).toBe(false);
+    expect(needsReplacement(grade('s1', null, { status: 'nicht_gewertet' }))).toBe(false);
+    const ra = grade('s1', 2, { typeId: 'typ-rechenschaftsablage', replacesAssessmentId: 'ex1' });
+    const c = course({ assessments: [ex], grades: [absent, ra] });
+    expect(replacementFor(c, 'ex1', 's1')).toBe(ra);
+    expect(replacementFor(c, 'ex1', 's2')).toBeUndefined();
+  });
+
+  it('offene Ersatznote verhindert Vollständigkeit, eingetragene nicht', () => {
+    const base = [grade('s1', null, { assessmentId: 'ex1', typeId: null, status: 'nicht_gewertet' }), grade('s1', 2), grade('s1', 3, { typeId: 'typ-stegreifaufgabe' })];
+    const open = studentCompleteness(course({ assessments: [ex], grades: base }), 's1', ctx, 1);
+    expect(open.missing).toEqual(['1 Ersatznote offen']);
+    const done = studentCompleteness(
+      course({ assessments: [ex], grades: [...base, grade('s1', 2, { typeId: 'typ-rechenschaftsablage', replacesAssessmentId: 'ex1' })] }),
+      's1',
+      ctx,
+      1,
+    );
+    expect(done.complete).toBe(true);
   });
 });
