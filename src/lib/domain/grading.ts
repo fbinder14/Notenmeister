@@ -89,8 +89,6 @@ export function weightedAverage(entries: Array<{ value: number; weight: number }
 
 export interface Summary {
   total: number | null;
-  big: number | null;
-  small: number | null;
   countBig: number;
   countSmall: number;
   countOral: number;
@@ -98,15 +96,12 @@ export interface Summary {
 
 /**
  * Jahresfortgangsnote nach RSO § 23: gewichteter Schnitt aller Leistungsnachweise.
- * Große und kleine Nachweise werden zusätzlich getrennt ausgewiesen.
  */
 export function summarize(entries: Entry[]): Summary {
   const big = entries.filter((e) => e.category === 'gross');
   const small = entries.filter((e) => e.category === 'klein');
   return {
     total: weightedAverage(entries),
-    big: weightedAverage(big),
-    small: weightedAverage(small),
     countBig: big.length,
     countSmall: small.length,
     countOral: small.filter((e) => e.mode === 'muendlich').length,

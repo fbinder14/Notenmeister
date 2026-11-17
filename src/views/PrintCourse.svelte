@@ -118,7 +118,7 @@
               </tbody>
             </table>
             <p class="mt-2 text-[0.75rem]">
-              Schnitt große LN: <b>{formatAvg(sum.big)}</b> · kleine LN: <b>{formatAvg(sum.small)}</b> · gesamt: <b>{formatAvg(sum.total)}</b>
+              Schnitt: <b>{formatAvg(sum.total)}</b>
               {#if rep(s.id, period === 1 ? 'zwischen' : 'jahr')} · Zeugnisnote: <b>{rep(s.id, period === 1 ? 'zwischen' : 'jahr')}</b>{/if}
             </p>
             <div class="mt-10 grid grid-cols-2 gap-10 text-[0.65625rem] text-slate-600">

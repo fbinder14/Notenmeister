@@ -1,5 +1,5 @@
-import { entriesFor, type Ctx } from './grading';
-import type { AssessmentType, Core, Course, SchoolClass, SchoolYear, Student } from './types';
+import { counts, entriesFor, halfOf, type Ctx } from './grading';
+import type { AssessmentType, Core, Course, Half, Period, SchoolClass, SchoolYear, Student } from './types';
 
 export type Severity = 'warn' | 'info';
 
@@ -19,6 +19,63 @@ const days = (a: string, b: string) => (Date.parse(b) - Date.parse(a)) / DAY;
 export function activeStudents(cls: SchoolClass, course: Course): Student[] {
   const ex = new Set(course.excludedStudentIds);
   return cls.students.filter((s) => !ex.has(s.id) && !s.leftAt);
+}
+
+/** Mündlicher kleiner Leistungsnachweis je Halbjahr Pflicht (RSO § 19 Abs. 6 Satz 3, § 18 Abs. 3 Satz 2). */
+export function needsOral(course: Course): boolean {
+  return course.testModel || (course.promotionSubject && course.weeklyHours >= 2);
+}
+
+/** Mindestanzahl kleiner Leistungsnachweise je Halbjahr (RSO § 19 Abs. 6 Satz 3); im Testmodell genügt der mündliche. */
+export function minSmallPerHalf(course: Course): number {
+  return course.testModel ? 1 : 2;
+}
+
+export interface Completeness {
+  complete: boolean;
+  /** Was noch fehlt, in kurzen Sätzen. */
+  missing: string[];
+}
+
+/**
+ * Liegen für eine Schülerin oder einen Schüler alle nach RSO erforderlichen Noten vor?
+ * Je Halbjahr: Mindestzahl kleiner Leistungsnachweise, ggf. ein mündlicher, eine Note
+ * zu jedem Leistungsnachweis des Halbjahres und kein offener Nachtermin.
+ * Für das Schuljahr zusätzlich die Anzahl der Schulaufgaben bzw. angesagten Tests.
+ */
+export function studentCompleteness(course: Course, studentId: string, ctx: Ctx, period: Period): Completeness {
+  const missing: string[] = [];
+  const halves: Half[] = period === 'jahr' ? [1, 2] : [period];
+  const minSmall = minSmallPerHalf(course);
+  const oral = needsOral(course);
+  for (const h of halves) {
+    const pre = period === 'jahr' ? `${h}. Hj.: ` : '';
+    const small = entriesFor(course, studentId, ctx, h).filter((e) => e.category === 'klein');
+    if (!course.testModel && small.length < minSmall) missing.push(`${pre}${small.length} von ${minSmall} kleinen Leistungsnachweisen`);
+    if (oral && !small.some((e) => e.mode === 'muendlich')) missing.push(`${pre}mündlicher Leistungsnachweis fehlt`);
+    let ungraded = 0;
+    for (const a of course.assessments) {
+      if (halfOf(a.date, ctx.year) !== h) continue;
+      const g = course.grades.find((x) => x.assessmentId === a.id && x.studentId === studentId);
+      if (!g || (g.status !== 'nicht_gewertet' && !counts(g))) ungraded++;
+    }
+    if (ungraded) missing.push(`${pre}${ungraded} Leistungsnachweis${ungraded === 1 ? '' : 'e'} ohne Note`);
+    const openSingles = course.grades.filter(
+      (g) => !g.assessmentId && g.studentId === studentId && g.status === 'nachtermin' && halfOf(g.performedAt.slice(0, 10), ctx.year) === h,
+    ).length;
+    if (openSingles) missing.push(`${pre}${openSingles} offene${openSingles === 1 ? 'r' : ''} Nachtermin${openSingles === 1 ? '' : 'e'}`);
+  }
+  if (period === 'jahr') {
+    const kind = (typeId: string) => ctx.types.get(typeId)?.kind;
+    if (course.testModel) {
+      const n = course.assessments.filter((a) => kind(a.typeId) === 'angesagter_test').length;
+      if (n < 5) missing.push(`${n} von mindestens 5 angesagten Tests`);
+    } else if (course.plannedSchulaufgaben > 0) {
+      const n = course.assessments.filter((a) => kind(a.typeId) === 'schulaufgabe' || kind(a.typeId) === 'ersatz_schulaufgabe').length;
+      if (n < course.plannedSchulaufgaben) missing.push(`${n} von ${course.plannedSchulaufgaben} Schulaufgaben`);
+    }
+  }
+  return { complete: missing.length === 0, missing };
 }
 
 function isoWeek(dateIso: string): string {
@@ -50,8 +107,8 @@ export function courseWarnings(cls: SchoolClass, course: Course, core: Core, yea
     { half: 1, start: year.start, end: year.halfSwitch },
     { half: 2, start: year.halfSwitch, end: year.end },
   ];
-  const needOral = course.testModel || (course.promotionSubject && course.weeklyHours >= 2);
-  const minSmall = course.testModel ? 1 : 2;
+  const needOral = needsOral(course);
+  const minSmall = minSmallPerHalf(course);
   for (const h of halves) {
     if (today < h.start) continue;
     const ended = today >= h.end;

@@ -67,8 +67,6 @@
         <thead class="bg-slate-50/80 text-left text-[0.6875rem] uppercase tracking-wider text-slate-400 dark:bg-white/[0.02]">
           <tr>
             <th class="px-5 py-2.5 font-semibold">Name</th>
-            <th class="px-2 py-2.5 text-center font-semibold">Ø groß</th>
-            <th class="px-2 py-2.5 text-center font-semibold">Ø klein</th>
             <th class="px-2 py-2.5 text-center font-semibold">Ø gesamt</th>
             <th class="px-2 py-2.5 text-center font-semibold">Vorschlag</th>
             <th class="px-5 py-2.5 font-semibold">Zeugnisnote</th>
@@ -78,8 +76,6 @@
           {#each rows as r (r.s.id)}
             <tr class="border-t border-slate-100 dark:border-line-dark {r.s.leftAt ? 'opacity-50' : ''}">
               <td class="px-5 py-2 font-medium">{r.s.lastName}, <span class="font-normal text-slate-500">{r.s.firstName}</span></td>
-              <td class="px-2 py-2 text-center tabular-nums text-slate-500">{formatAvg(r.sum.big)}</td>
-              <td class="px-2 py-2 text-center tabular-nums text-slate-500">{formatAvg(r.sum.small)}</td>
               <td class="px-2 py-2 text-center font-semibold tabular-nums">{formatAvg(r.sum.total)}</td>
               <td class="px-2 py-2 text-center">
                 {#if r.suggestion}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[0.75rem] font-bold ring-1 ring-inset {GRADE_CLASS[r.suggestion]}">{r.suggestion}</span>{/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { app } from '../lib/state/app.svelte';
-  import { courseWarnings } from '../lib/domain/rules';
+  import { courseWarnings, studentCompleteness } from '../lib/domain/rules';
   import { entriesFor, formatAvg, halfOf, summarize, suggestGrade, weightedAverage, type Ctx } from '../lib/domain/grading';
   import {
     courseStudents,
@@ -69,6 +69,12 @@
   function summary(s: Student) {
     return summarize(entriesFor(course!, s.id, ctx!, period));
   }
+
+  const completeness = $derived(
+    course && ctx ? new Map(students.map((s) => [s.id, studentCompleteness(course, s.id, ctx, period)])) : new Map(),
+  );
+  const completeCount = $derived([...completeness.values()].filter((c) => c.complete).length);
+  const periodLabel = $derived(period === 'jahr' ? 'Schuljahr' : `${period}. Halbjahr`);
 
   function columnAvg(a: Assessment): string {
     const vals = students
@@ -148,8 +154,7 @@
                 </th>
               {/each}
               <th class="min-w-44 border-b border-l border-slate-200/70 px-3 py-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400 dark:border-line-dark">Einzelnoten</th>
-              <th class="w-16 border-b border-l border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt große Leistungsnachweise">Ø groß</th>
-              <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Schnitt kleine Leistungsnachweise">Ø klein</th>
+              <th class="w-16 border-b border-l border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Liegen alle nach RSO erforderlichen Noten für das {periodLabel} vor?">Noten</th>
               <th class="w-16 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-700 dark:border-line-dark dark:bg-white/[0.02] dark:text-slate-300" title="Gewichteter Gesamtschnitt nach RSO § 23">Ø gesamt</th>
               <th class="w-14 border-b border-slate-200/70 bg-slate-50/70 px-2 py-3 text-center text-[0.6875rem] font-semibold text-slate-400 dark:border-line-dark dark:bg-white/[0.02]" title="Vorschlag; die Note setzt die Lehrkraft">Vorschl.</th>
             </tr>
@@ -158,6 +163,7 @@
             {#each students as s, ri (s.id)}
               {@const sum = summary(s)}
               {@const sug = suggestGrade(sum.total, app.core.settings.rounding)}
+              {@const done = completeness.get(s.id)}
               <tr class="group">
                 <td class="sticky left-0 z-10 border-b border-slate-100 bg-white px-4 py-1 transition group-hover:bg-brand-50/60 dark:border-line-dark dark:bg-panel-dark dark:group-hover:bg-[#1a1e2a]">
                   <a href={href.student(cls.id, s.id)} class="block truncate font-medium hover:text-brand-600 {s.leftAt ? 'text-slate-400 line-through' : ''}">
@@ -192,8 +198,17 @@
                     </button>
                   </div>
                 </td>
-                <td class="border-b border-l border-slate-100 bg-slate-50/50 px-2 text-center tabular-nums text-slate-500 dark:border-line-dark dark:bg-white/[0.015]">{formatAvg(sum.big)}</td>
-                <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center tabular-nums text-slate-500 dark:border-line-dark dark:bg-white/[0.015]">{formatAvg(sum.small)}</td>
+                <td class="border-b border-l border-slate-100 bg-slate-50/50 px-2 text-center dark:border-line-dark dark:bg-white/[0.015]">
+                  {#if done?.complete}
+                    <span class="inline-grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white shadow-sm shadow-emerald-500/30" title="Alle erforderlichen Noten für das {periodLabel} liegen vor.">
+                      <Icon name="check" size={14} stroke={2.75} />
+                    </span>
+                  {:else if done}
+                    <span class="inline-grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[0.6875rem] font-semibold tabular-nums text-slate-400 ring-1 ring-inset ring-slate-200 dark:ring-white/10" title="Für das {periodLabel} fehlt noch:\n– {done.missing.join('\n– ')}">
+                      {done.missing.length}
+                    </span>
+                  {/if}
+                </td>
                 <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center font-semibold tabular-nums text-slate-900 dark:border-line-dark dark:bg-white/[0.015] dark:text-white">{formatAvg(sum.total)}</td>
                 <td class="border-b border-slate-100 bg-slate-50/50 px-2 text-center dark:border-line-dark dark:bg-white/[0.015]">
                   {#if sug}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[0.75rem] font-bold ring-1 ring-inset {GRADE_CLASS[sug]}">{sug}</span>{/if}
@@ -225,7 +240,10 @@
                     {/each}
                   </div>
                 </td>
-                <td colspan="4" class="border-l border-slate-100 dark:border-line-dark"></td>
+                <td class="border-l border-slate-100 px-2 py-2.5 text-center tabular-nums dark:border-line-dark" title="{completeCount} von {students.length} mit allen erforderlichen Noten">
+                  <div class="font-semibold {completeCount === students.length ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}">{completeCount}/{students.length}</div>
+                </td>
+                <td colspan="2"></td>
               </tr>
             </tfoot>
           {/if}

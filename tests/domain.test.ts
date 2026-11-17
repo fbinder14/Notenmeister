@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultGradeKeys, defaultTypes, emptyCore, plannedSchulaufgabenFor } from '../src/lib/domain/defaults';
 import { gradeFromPoints, pointRanges, pointThresholds, validateThresholds } from '../src/lib/domain/gradeKey';
 import { entriesFor, formatAvg, summarize, suggestGrade, weightedAverage, type Ctx } from '../src/lib/domain/grading';
-import { classWarnings, courseWarnings } from '../src/lib/domain/rules';
+import { classWarnings, courseWarnings, studentCompleteness } from '../src/lib/domain/rules';
 import type { Course, Grade, GradeStatus, GradeValue, SchoolClass, SchoolYear } from '../src/lib/domain/types';
 
 const year: SchoolYear = { id: 'y', name: '2026/27', start: '2026-09-15', halfSwitch: '2027-02-13', end: '2027-07-30' };
@@ -108,8 +108,6 @@ describe('Schnittberechnung (RSO § 23)', () => {
     });
     const s = summarize(entriesFor(c, 's1', ctx));
     expect(s.total).toBeCloseTo((2 * 2 + 4 + 3) / 4);
-    expect(s.big).toBe(2);
-    expect(s.small).toBe(3.5);
     expect(s.countOral).toBe(1);
   });
 
@@ -210,5 +208,36 @@ describe('Schulaufgaben nach RSO § 18 Abs. 1', () => {
     expect(plannedSchulaufgabenFor('Betriebswirtschaftslehre/Rechnungswesen', 7, 'II')).toBe(3);
     expect(plannedSchulaufgabenFor('Physik', 7, 'II')).toBeNull();
     expect(plannedSchulaufgabenFor('Geschichte', 8, 'I')).toBeNull();
+  });
+});
+
+describe('Vollständigkeit je Halbjahr', () => {
+  const sa = { id: 'a1', typeId: 'typ-schulaufgabe', title: '1. SA', date: '2026-11-10', weight: null, maxPoints: null, gradeKeyId: null, createdAt: '' };
+
+  it('vollständig mit zwei kleinen, davon einem mündlichen, und Note zur Schulaufgabe', () => {
+    const c = course({
+      assessments: [sa],
+      grades: [grade('s1', 2, { assessmentId: 'a1', typeId: null }), grade('s1', 3, { typeId: 'typ-stegreifaufgabe' }), grade('s1', 2)],
+    });
+    expect(studentCompleteness(c, 's1', ctx, 1)).toEqual({ complete: true, missing: [] });
+    expect(studentCompleteness(c, 's1', ctx, 2).complete).toBe(false);
+  });
+
+  it('meldet fehlende Schulaufgabennote, mündliche Note und offenen Nachtermin', () => {
+    const c = course({
+      assessments: [sa],
+      grades: [grade('s1', null, { assessmentId: 'a1', typeId: null, status: 'nachtermin' }), grade('s1', 3, { typeId: 'typ-stegreifaufgabe' })],
+    });
+    const r = studentCompleteness(c, 's1', ctx, 1);
+    expect(r.complete).toBe(false);
+    expect(r.missing.join(' ')).toMatch(/1 von 2 kleinen/);
+    expect(r.missing.join(' ')).toMatch(/mündlicher/);
+    expect(r.missing.join(' ')).toMatch(/1 Leistungsnachweis ohne Note/);
+  });
+
+  it('nicht gewertete Schulaufgabe gilt als erledigt; Testmodell braucht nur den mündlichen', () => {
+    const c = course({ testModel: true, assessments: [sa], grades: [grade('s1', null, { assessmentId: 'a1', typeId: null, status: 'nicht_gewertet' }), grade('s1', 2)] });
+    expect(studentCompleteness(c, 's1', ctx, 1).complete).toBe(true);
+    expect(studentCompleteness(c, 's1', ctx, 'jahr').missing.join(' ')).toMatch(/0 von mindestens 5 angesagten Tests/);
   });
 });
