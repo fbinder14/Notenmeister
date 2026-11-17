@@ -28,6 +28,7 @@
     defaultTypeId = 'typ-rechenschaftsablage',
     onclose,
     forAssessment = null,
+    replaces = null,
   }: {
     open?: boolean;
     cls: SchoolClass;
@@ -38,7 +39,13 @@
     onclose?: () => void;
     /** Neue Note zu diesem Leistungsnachweis statt einer Einzelnote. */
     forAssessment?: Assessment | null;
+    /** Neue Einzelnote als Ersatz für diesen versäumten Leistungsnachweis. */
+    replaces?: Assessment | null;
   } = $props();
+
+  /** Versäumter Nachweis, den diese Note ersetzt (neu oder bestehend). */
+  const replaced = $derived(replaces ?? (grade?.replacesAssessmentId ? course.assessments.find((a) => a.id === grade!.replacesAssessmentId) : undefined));
+  const replacedLabel = $derived(replaced ? `${typeById(replaced.typeId)?.name ?? 'Leistungsnachweis'} vom ${new Date(`${replaced.date}T12:00:00`).toLocaleDateString('de-DE')}` : '');
 
   $effect(() => {
     if (!open) onclose?.();
@@ -67,7 +74,7 @@
     value = grade?.value ?? null;
     status = grade?.status ?? 'gewertet';
     comment = grade?.comment ?? '';
-    title = grade?.title ?? '';
+    title = grade?.title ?? (replaces ? `Ersatz für ${replaces.title || typeById(replaces.typeId)?.short || 'Leistungsnachweis'}` : '');
     typeId = grade?.typeId ?? defaultTypeId;
     weight = grade?.weight ?? null;
     performed = toLocalInput(grade?.performedAt ?? new Date().toISOString());
@@ -97,7 +104,7 @@
     } else if (forAssessment) {
       setAssessmentGrade(cls, course, forAssessment, student.id, input);
     } else {
-      addSingleGrade(cls, course, student.id, typeId, title, input, weight);
+      addSingleGrade(cls, course, student.id, typeId, title, input, weight, replaces?.id);
       toast.success(`Note für ${student.firstName} gespeichert.`);
     }
     open = false;
@@ -110,8 +117,13 @@
   }
 </script>
 
-<Modal bind:open title={grade ? 'Note bearbeiten' : 'Einzelnote erfassen'} subtitle="{student.firstName} {student.lastName}{assessment ? ` · ${assessment.title}` : ''}" width="max-w-lg">
+<Modal bind:open title={grade ? 'Note bearbeiten' : replaces ? 'Ersatznote erfassen' : 'Einzelnote erfassen'} subtitle="{student.firstName} {student.lastName}{assessment ? ` · ${assessment.title}` : ''}" width="max-w-lg">
   <form id="grade-form" onsubmit={save} class="grid gap-4">
+    {#if replaced}
+      <p class="-mb-1 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-[0.78125rem] text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
+        Ersatz für die versäumte {replacedLabel}.
+      </p>
+    {/if}
     <div>
       <span class="label">Note</span>
       <div class="grid grid-cols-6 gap-1.5">

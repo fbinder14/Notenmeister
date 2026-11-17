@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { app } from '../lib/state/app.svelte';
   import { courseWarnings, studentCompleteness } from '../lib/domain/rules';
-  import { entriesFor, formatAvg, halfOf, summarize, suggestGrade, weightedAverage, type Ctx } from '../lib/domain/grading';
+  import { entriesFor, formatAvg, halfOf, needsReplacement, summarize, suggestGrade, weightedAverage, type Ctx } from '../lib/domain/grading';
   import {
     courseStudents,
     findClass,
@@ -43,7 +43,7 @@
 
   let assessOpen = $state(false);
   let courseOpen = $state(false);
-  let gradeDlg = $state<{ student: Student; grade: Grade | null; a?: Assessment } | null>(null);
+  let gradeDlg = $state<{ student: Student; grade: Grade | null; a?: Assessment; replaces?: Assessment } | null>(null);
 
   const ctx = $derived<Ctx | null>(year ? { types: new Map(app.core.types.map((t) => [t.id, t])), year } : null);
   const students = $derived(cls && course ? courseStudents(cls, course) : []);
@@ -64,6 +64,29 @@
     return course.grades
       .filter((g) => !g.assessmentId && g.studentId === studentId && (period === 'jahr' || halfOf(g.performedAt.slice(0, 10), year) === period))
       .sort((a, b) => a.performedAt.localeCompare(b.performedAt));
+  }
+
+  /** Einzelnoten, die versäumte Leistungsnachweise ersetzen: Schlüssel Nachweis|Schüler. */
+  const replacements = $derived.by(() => {
+    const m = new Map<string, Grade>();
+    for (const g of course?.grades ?? []) if (!g.assessmentId && g.replacesAssessmentId) m.set(`${g.replacesAssessmentId}|${g.studentId}`, g);
+    return m;
+  });
+
+  /** Versäumte Nachweise des Zeitraums, für die noch die Ersatznote fehlt. */
+  function openReplacements(studentId: string): Assessment[] {
+    return assessments.filter((a) => needsReplacement(gradeMap.get(`${a.id}|${studentId}`)) && !replacements.has(`${a.id}|${studentId}`));
+  }
+
+  function assessmentLabel(a: Assessment): string {
+    return `${typeById(a.typeId)?.short ?? '?'} ${fmtShortDate(a.date)}`;
+  }
+
+  function replacedBy(a: Assessment, studentId: string): string {
+    const r = replacements.get(`${a.id}|${studentId}`);
+    if (!r) return '';
+    const t = typeById(r.typeId);
+    return `${t?.short ?? 'Einzelnote'}${r.value ? ` ${r.value}` : ''}`;
   }
 
   function summary(s: Student) {
@@ -180,6 +203,7 @@
                       gradeKey={gradeKeyById(a.gradeKeyId)}
                       row={ri}
                       col={ci}
+                      replacedBy={replacedBy(a, s.id)}
                       oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, !v.status && v.value === null && v.points === null ? null : { comment: g?.comment ?? '', ...v })}
                       onopen={() => (gradeDlg = { student: s, grade: g ?? null, a })}
                     />
@@ -189,8 +213,19 @@
                   <div class="flex flex-wrap items-center gap-1">
                     {#each singles(s.id) as g (g.id)}
                       {@const t = typeById(g.typeId)}
-                      <button class="transition hover:-translate-y-px" onclick={() => (gradeDlg = { student: s, grade: g })} title="{t?.name ?? ''}{g.title ? ` · ${g.title}` : ''} · {new Date(g.performedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}{g.comment ? `\n${g.comment}` : ''}">
+                      {@const rep = g.replacesAssessmentId ? course.assessments.find((x) => x.id === g.replacesAssessmentId) : undefined}
+                      <button class="flex items-center gap-0.5 transition hover:-translate-y-px" onclick={() => (gradeDlg = { student: s, grade: g })} title="{t?.name ?? ''}{rep ? ` · Ersatz für ${typeById(rep.typeId)?.name ?? 'Leistungsnachweis'} vom ${fmtShortDate(rep.date)}` : ''}{g.title ? ` · ${g.title}` : ''} · {new Date(g.performedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}{g.comment ? `\n${g.comment}` : ''}">
                         <GradeBadge value={g.value} status={g.status} size="sm" />
+                        {#if rep}<span class="text-[0.65625rem] font-medium text-emerald-600 dark:text-emerald-400">← {typeById(rep.typeId)?.short ?? '?'}</span>{/if}
+                      </button>
+                    {/each}
+                    {#each openReplacements(s.id) as a (a.id)}
+                      <button
+                        class="inline-flex h-6 items-center gap-0.5 rounded-md border border-dashed border-amber-400 bg-amber-50 px-1.5 text-[0.6875rem] font-medium text-amber-800 transition hover:bg-amber-100 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
+                        onclick={() => (gradeDlg = { student: s, grade: null, replaces: a })}
+                        title="Gefehlt bei „{a.title || typeById(a.typeId)?.name}“ – Ersatznote erfassen"
+                      >
+                        <Icon name="plus" size={11} stroke={2.5} /> Ersatz {assessmentLabel(a)}
                       </button>
                     {/each}
                     <button class="grid h-6 w-6 place-items-center rounded-md text-slate-300 opacity-0 transition hover:bg-brand-50 hover:text-brand-600 group-hover:opacity-100 dark:hover:bg-white/10" onclick={() => (gradeDlg = { student: s, grade: null })} aria-label="Einzelnote hinzufügen">
@@ -272,6 +307,6 @@
   <AssessmentDialog bind:open={assessOpen} {cls} {course} />
   <CourseDialog bind:open={courseOpen} {cls} {course} />
   {#if gradeDlg}
-    <GradeDialog open={true} {cls} {course} student={gradeDlg.student} grade={gradeDlg.grade} forAssessment={gradeDlg.a ?? null} onclose={() => (gradeDlg = null)} />
+    <GradeDialog open={true} {cls} {course} student={gradeDlg.student} grade={gradeDlg.grade} forAssessment={gradeDlg.a ?? null} replaces={gradeDlg.replaces ?? null} onclose={() => (gradeDlg = null)} />
   {/if}
 {/if}

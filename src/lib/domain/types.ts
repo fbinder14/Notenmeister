@@ -145,6 +145,8 @@ export interface Grade {
   comment: string;
   /** Zeitpunkt der Leistung (änderbar, vorbelegt mit „jetzt“). */
   performedAt: string;
+  /** Nur bei Einzelnoten: ersetzt einen versäumten Leistungsnachweis (z. B. Rechenschaftsablage statt Ex). */
+  replacesAssessmentId?: ID;
   /** Zeitpunkt der ersten Erfassung (automatisch, unveränderlich). */
   recordedAt: string;
   history: GradeChange[];
