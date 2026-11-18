@@ -85,15 +85,15 @@
 }
 
 @utility btn-primary {
-  @apply bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-[0_1px_0_rgb(255_255_255/0.2)_inset,0_6px_16px_-6px_rgb(79_70_229/0.7)] hover:from-brand-400 hover:to-brand-600 hover:shadow-[0_1px_0_rgb(255_255_255/0.2)_inset,0_10px_22px_-6px_rgb(79_70_229/0.75)];
+  @apply bg-brand-600 text-white shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_6px_16px_-6px_rgb(79_70_229/0.7)] hover:bg-brand-700 hover:shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_10px_22px_-6px_rgb(79_70_229/0.75)];
 }
 
 @utility btn-ghost {
-  @apply text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white;
+  @apply text-slate-700 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white;
 }
 
 @utility btn-soft {
-  @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-line-dark dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10;
+  @apply border border-slate-300 bg-white text-slate-900 shadow-sm hover:border-slate-400 hover:bg-slate-50 dark:border-[#3a4052] dark:bg-line-dark dark:text-slate-50 dark:hover:border-slate-500 dark:hover:bg-[#2c3140];
 }
 
 @utility btn-danger {
