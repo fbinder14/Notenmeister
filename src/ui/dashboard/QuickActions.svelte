@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { addNote, courseStudents, fromLocalInput, NOTE_TOPICS, startObservation, subjectOf, toLocalInput } from '../../lib/state/actions';
-  import { go, href } from '../../lib/state/router.svelte';
+  import { addNote, fromLocalInput, NOTE_TOPICS, toLocalInput } from '../../lib/state/actions';
   import { toast } from '../../lib/state/toast.svelte';
   import type { NoteTopic, SchoolClass } from '../../lib/domain/types';
+  import type { Ctx } from '../../lib/domain/grading';
   import Icon, { type IconName } from '../Icon.svelte';
   import Modal from '../Modal.svelte';
   import GradeFinder from './GradeFinder.svelte';
-  import type { Ctx } from '../../lib/domain/grading';
+  import ObservationStarter from './ObservationStarter.svelte';
 
   /** Schnellzugriff: Noten erfassen, Beobachtung starten, Notiz anlegen. */
   let { classes, ctx }: { classes: SchoolClass[]; ctx: Ctx | null } = $props();
@@ -18,62 +18,42 @@
     { mode: 'note', label: 'Notiz anlegen', hint: 'Pädagogische Notiz', icon: 'edit', tone: 'from-amber-500 to-orange-500' },
   ];
 
-  /** Formular für Beobachtung und Notiz; Noten laufen über die Schülersuche. */
-  let mode = $state<Exclude<Mode, 'grade'> | null>(null);
+  /** Noten und Beobachtungen starten mit der Schülersuche, Notizen mit einem Formular. */
   let finder = $state(false);
-  let courseKey = $state('');
+  let observer = $state(false);
+  let noteOpen = $state(false);
   let classId = $state('');
   let studentId = $state('');
   let topic = $state<NoteTopic>('beobachtung');
   let text = $state('');
   let at = $state('');
 
-  const courses = $derived(
-    classes.flatMap((cls) => cls.courses.map((course) => ({ cls, course, key: `${cls.id}/${course.id}`, label: `${cls.name} · ${subjectOf(course)?.name ?? ''}` }))),
-  );
-  const picked = $derived(courses.find((c) => c.key === courseKey));
+  const hasCourses = $derived(classes.some((c) => c.courses.length));
   const noteClass = $derived(classes.find((c) => c.id === classId));
   const students = $derived(
-    mode === 'observe' && picked
-      ? courseStudents(picked.cls, picked.course).filter((s) => !s.leftAt)
-      : mode === 'note' && noteClass
-        ? [...noteClass.students].filter((s) => !s.leftAt).sort((a, b) => a.lastName.localeCompare(b.lastName, 'de'))
-        : [],
+    noteClass ? [...noteClass.students].filter((s) => !s.leftAt).sort((a, b) => a.lastName.localeCompare(b.lastName, 'de')) : [],
   );
-  const running = $derived(
-    mode === 'observe' && picked ? new Set((picked.course.observations ?? []).filter((p) => !p.closedAt).map((p) => p.studentId)) : new Set<string>(),
-  );
-
-  const title = $derived(ACTIONS.find((a) => a.mode === mode)?.label ?? '');
-  const valid = $derived(
-    mode === 'observe' ? !!picked && !!studentId : mode === 'note' ? !!noteClass && !!studentId && !!text.trim() : false,
-  );
+  const valid = $derived(!!noteClass && !!studentId && !!text.trim());
 
   function open(m: Mode) {
-    if (m === 'grade') {
-      finder = true;
-      return;
+    if (m === 'grade') finder = true;
+    else if (m === 'observe') observer = true;
+    else {
+      studentId = '';
+      text = '';
+      topic = 'beobachtung';
+      at = toLocalInput(new Date().toISOString());
+      if (!classes.some((c) => c.id === classId)) classId = classes.length === 1 ? classes[0].id : '';
+      noteOpen = true;
     }
-    mode = m;
-    studentId = '';
-    text = '';
-    topic = 'beobachtung';
-    at = toLocalInput(new Date().toISOString());
-    if (!courses.some((c) => c.key === courseKey)) courseKey = courses.length === 1 ? courses[0].key : '';
-    if (!classes.some((c) => c.id === classId)) classId = classes.length === 1 ? classes[0].id : '';
   }
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
-    if (!valid) return;
-    if (mode === 'observe' && picked) {
-      startObservation(picked.cls, picked.course, studentId);
-      go(href.observation(picked.cls.id, picked.course.id, studentId));
-    } else if (mode === 'note' && noteClass) {
-      addNote(noteClass, studentId, { at: fromLocalInput(at), topic, text });
-      toast.success('Notiz gespeichert.');
-    }
-    mode = null;
+    if (!valid || !noteClass) return;
+    addNote(noteClass, studentId, { at: fromLocalInput(at), topic, text });
+    toast.success('Notiz gespeichert.');
+    noteOpen = false;
   }
 </script>
 
@@ -81,7 +61,7 @@
   {#each ACTIONS as a (a.mode)}
     <button
       class="card group flex items-center gap-3 p-3 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-lift disabled:pointer-events-none disabled:opacity-50"
-      disabled={!courses.length}
+      disabled={!hasCourses}
       onclick={() => open(a.mode)}
     >
       <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br {a.tone} text-white shadow-soft"><Icon name={a.icon} size={17} /></span>
@@ -93,60 +73,41 @@
   {/each}
 </div>
 
-<Modal open={!!mode} {title} width="max-w-md" onclose={() => (mode = null)}>
-  <form id="quick-action" class="grid gap-4" onsubmit={submit}>
-    {#if mode === 'note'}
+<Modal bind:open={noteOpen} title="Notiz anlegen" width="max-w-md">
+  <form id="quick-note" class="grid gap-4" onsubmit={submit}>
+    <label>
+      <span class="label">Klasse</span>
+      <select class="field" bind:value={classId} onchange={() => (studentId = '')}>
+        <option value="" disabled>Bitte wählen …</option>
+        {#each classes as c (c.id)}<option value={c.id}>{c.name}</option>{/each}
+      </select>
+    </label>
+    <label>
+      <span class="label">Schülerin oder Schüler</span>
+      <select class="field" bind:value={studentId} disabled={!students.length}>
+        <option value="" disabled>Bitte wählen …</option>
+        {#each students as s (s.id)}<option value={s.id}>{s.lastName}, {s.firstName}</option>{/each}
+      </select>
+    </label>
+    <div class="grid grid-cols-2 gap-3">
       <label>
-        <span class="label">Klasse</span>
-        <select class="field" bind:value={classId} onchange={() => (studentId = '')}>
-          <option value="" disabled>Bitte wählen …</option>
-          {#each classes as c (c.id)}<option value={c.id}>{c.name}</option>{/each}
+        <span class="label">Art</span>
+        <select class="field" bind:value={topic}>
+          {#each Object.entries(NOTE_TOPICS) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </label>
-    {:else}
-      <label>
-        <span class="label">Kurs</span>
-        <select class="field" bind:value={courseKey} onchange={() => (studentId = '')}>
-          <option value="" disabled>Bitte wählen …</option>
-          {#each courses as c (c.key)}<option value={c.key}>{c.label}</option>{/each}
-        </select>
-      </label>
-    {/if}
-
-    {#if mode === 'observe' || mode === 'note'}
-      <label>
-        <span class="label">Schülerin oder Schüler</span>
-        <select class="field" bind:value={studentId} disabled={!students.length}>
-          <option value="" disabled>Bitte wählen …</option>
-          {#each students as s (s.id)}
-            <option value={s.id}>{s.lastName}, {s.firstName}{running.has(s.id) ? ' (läuft bereits)' : ''}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-
-    {#if mode === 'note'}
-      <div class="grid grid-cols-2 gap-3">
-        <label>
-          <span class="label">Art</span>
-          <select class="field" bind:value={topic}>
-            {#each Object.entries(NOTE_TOPICS) as [k, v] (k)}<option value={k}>{v}</option>{/each}
-          </select>
-        </label>
-        <label><span class="label">Zeitpunkt</span><input class="field" type="datetime-local" bind:value={at} /></label>
-      </div>
-      <label>
-        <span class="label">Notiz</span>
-        <textarea class="field h-28 resize-y py-2 leading-relaxed" bind:value={text} placeholder="Was ist vorgefallen, was wurde besprochen?"></textarea>
-      </label>
-    {:else if mode === 'observe' && running.has(studentId)}
-      <p class="text-[0.75rem] text-slate-500">Für diese Person läuft bereits eine Beobachtung – sie wird geöffnet.</p>
-    {/if}
+      <label><span class="label">Zeitpunkt</span><input class="field" type="datetime-local" bind:value={at} /></label>
+    </div>
+    <label>
+      <span class="label">Notiz</span>
+      <textarea class="field h-28 resize-y py-2 leading-relaxed" bind:value={text} placeholder="Was ist vorgefallen, was wurde besprochen?"></textarea>
+    </label>
   </form>
   {#snippet footer()}
-    <button type="button" class="btn btn-ghost" onclick={() => (mode = null)}>Abbrechen</button>
-    <button form="quick-action" class="btn btn-primary" disabled={!valid}>{mode === 'note' ? 'Speichern' : 'Öffnen'}</button>
+    <button type="button" class="btn btn-ghost" onclick={() => (noteOpen = false)}>Abbrechen</button>
+    <button form="quick-note" class="btn btn-primary" disabled={!valid}>Speichern</button>
   {/snippet}
 </Modal>
 
 {#if ctx}<GradeFinder bind:open={finder} {classes} {ctx} />{/if}
+<ObservationStarter bind:open={observer} {classes} />

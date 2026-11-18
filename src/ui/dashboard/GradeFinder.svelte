@@ -1,13 +1,13 @@
 <script lang="ts">
   import { app } from '../../lib/state/app.svelte';
   import { entriesFor, formatAvg, halfOf, summarize, type Ctx } from '../../lib/domain/grading';
-  import { activeStudents } from '../../lib/domain/rules';
   import { addSingleGrade, fmtShortDate, fromLocalInput, removeGrade, studentGradeRows, subjectOf, todayIso, typeById } from '../../lib/state/actions';
-  import type { Course, GradeValue, SchoolClass, Student } from '../../lib/domain/types';
+  import type { GradeValue, SchoolClass, Student } from '../../lib/domain/types';
   import Modal from '../Modal.svelte';
   import Icon from '../Icon.svelte';
   import GradeBadge from '../GradeBadge.svelte';
   import { SUBJECT_GRADIENT } from '../colors';
+  import StudentSearch, { type StudentHit } from './StudentSearch.svelte';
 
   /**
    * „Noten erfassen“ für Einzelnoten (z. B. Rechenschaftsablage): erst Name
@@ -16,40 +16,12 @@
    */
   let { open = $bindable(false), classes, ctx }: { open?: boolean; classes: SchoolClass[]; ctx: Ctx } = $props();
 
-  interface Hit {
-    key: string;
-    cls: SchoolClass;
-    course: Course;
-    student: Student;
-  }
-
   let query = $state('');
-  let active = $state(0);
-  let picked = $state<Hit | null>(null);
+  let picked = $state<StudentHit | null>(null);
   let typeId = $state(lastTypeId);
   let date = $state(todayIso());
   /** In dieser Sitzung angelegte Noten (zum Hervorheben und Zurücknehmen). */
   let added = $state<string[]>([]);
-  let searchInput = $state<HTMLInputElement | null>(null);
-
-  const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-
-  const all = $derived(
-    classes.flatMap((cls) =>
-      cls.courses.flatMap((course) => activeStudents(cls, course).map((student) => ({ key: `${course.id}/${student.id}`, cls, course, student }))),
-    ),
-  );
-  const hits = $derived.by(() => {
-    const tokens = norm(query).split(/[\s,]+/).filter(Boolean);
-    if (!tokens.length) return [];
-    return all
-      .filter((h) => {
-        const name = norm(`${h.student.lastName} ${h.student.firstName}`);
-        return tokens.every((t) => name.includes(t));
-      })
-      .sort((a, b) => a.student.lastName.localeCompare(b.student.lastName, 'de') || a.student.firstName.localeCompare(b.student.firstName, 'de') || a.cls.name.localeCompare(b.cls.name, 'de'))
-      .slice(0, 8);
-  });
 
   const types = $derived(app.core.types.filter((t) => !t.archived && t.category === 'klein'));
 
@@ -62,7 +34,6 @@
   $effect(() => {
     if (open) {
       query = '';
-      active = 0;
       picked = null;
       added = [];
       date = todayIso();
@@ -73,27 +44,13 @@
     lastTypeId = typeId;
   });
 
-  function pick(h: Hit) {
+  function pick(h: StudentHit) {
     picked = h;
     added = [];
   }
 
   function back() {
     picked = null;
-    queueMicrotask(() => searchInput?.select());
-  }
-
-  function onsearchkey(e: KeyboardEvent) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      active = Math.min(active + 1, hits.length - 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      active = Math.max(active - 1, 0);
-    } else if (e.key === 'Enter' && hits[active]) {
-      e.preventDefault();
-      pick(hits[active]);
-    }
   }
 
   function save(value: GradeValue) {
@@ -132,42 +89,7 @@
 
 <Modal bind:open title={picked ? `Note für ${picked.student.firstName} ${picked.student.lastName}` : 'Noten erfassen'} width="max-w-md" bare>
   {#if !picked}
-    <div class="flex items-center gap-2.5 px-4 py-3">
-      <Icon name="search" size={17} class="text-slate-400" />
-      <input
-        bind:this={searchInput}
-        bind:value={query}
-        oninput={() => (active = 0)}
-        onkeydown={onsearchkey}
-        class="h-8 flex-1 bg-transparent text-[0.9375rem] outline-none placeholder:text-slate-400"
-        placeholder="Name der Schülerin oder des Schülers"
-        aria-label="Schülerin oder Schüler suchen"
-        autocomplete="off"
-      />
-      <kbd class="rounded border border-slate-200 px-1.5 text-[0.6875rem] text-slate-400 dark:border-line-dark">↵</kbd>
-    </div>
-    {#if query.trim()}
-      <div class="border-t border-slate-100 p-1.5 dark:border-line-dark" role="listbox" aria-label="Treffer">
-        {#each hits as h, i (h.key)}
-          {@const s = subjectOf(h.course)}
-          <button
-            type="button"
-            role="option"
-            aria-selected={i === active}
-            class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[0.8125rem] transition {i === active
-              ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200'
-              : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'}"
-            onmouseenter={() => (active = i)}
-            onclick={() => pick(h)}
-          >
-            <span class="flex-1 truncate font-medium">{h.student.lastName}, {h.student.firstName}</span>
-            <span class="text-[0.75rem] {i === active ? '' : 'text-slate-500'}">{h.cls.name} · {s?.short}</span>
-          </button>
-        {:else}
-          <p class="px-2.5 py-2 text-[0.8125rem] text-slate-500">Niemand gefunden.</p>
-        {/each}
-      </div>
-    {/if}
+    <StudentSearch {classes} bind:query onpick={pick} />
   {:else}
     {@const st = picked.student}
     <div class="relative overflow-hidden rounded-t-card">
