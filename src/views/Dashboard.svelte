@@ -47,7 +47,7 @@
   {:else}
     <div class="grid gap-4">
       {#if year}<YearBar {year} {today} />{/if}
-      <QuickActions {classes} />
+      <QuickActions {classes} {ctx} />
     </div>
 
     <div class="grid items-start gap-7 lg:grid-cols-[1.4fr_1fr]">

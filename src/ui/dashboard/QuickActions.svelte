@@ -5,18 +5,22 @@
   import type { NoteTopic, SchoolClass } from '../../lib/domain/types';
   import Icon, { type IconName } from '../Icon.svelte';
   import Modal from '../Modal.svelte';
+  import GradeFinder from './GradeFinder.svelte';
+  import type { Ctx } from '../../lib/domain/grading';
 
   /** Schnellzugriff: Noten erfassen, Beobachtung starten, Notiz anlegen. */
-  let { classes }: { classes: SchoolClass[] } = $props();
+  let { classes, ctx }: { classes: SchoolClass[]; ctx: Ctx | null } = $props();
 
   type Mode = 'grade' | 'observe' | 'note';
   const ACTIONS: Array<{ mode: Mode; label: string; hint: string; icon: IconName; tone: string }> = [
-    { mode: 'grade', label: 'Noten erfassen', hint: 'Schnelleingabe für einen Kurs', icon: 'zap', tone: 'from-brand-500 to-violet-500' },
+    { mode: 'grade', label: 'Noten erfassen', hint: 'Einzelnote für eine Person', icon: 'zap', tone: 'from-brand-500 to-violet-500' },
     { mode: 'observe', label: 'Beobachtung starten', hint: 'Unterrichtsbeitrag beobachten', icon: 'eye', tone: 'from-sky-500 to-cyan-500' },
     { mode: 'note', label: 'Notiz anlegen', hint: 'Pädagogische Notiz', icon: 'edit', tone: 'from-amber-500 to-orange-500' },
   ];
 
-  let mode = $state<Mode | null>(null);
+  /** Formular für Beobachtung und Notiz; Noten laufen über die Schülersuche. */
+  let mode = $state<Exclude<Mode, 'grade'> | null>(null);
+  let finder = $state(false);
   let courseKey = $state('');
   let classId = $state('');
   let studentId = $state('');
@@ -42,10 +46,14 @@
 
   const title = $derived(ACTIONS.find((a) => a.mode === mode)?.label ?? '');
   const valid = $derived(
-    mode === 'grade' ? !!picked : mode === 'observe' ? !!picked && !!studentId : mode === 'note' ? !!noteClass && !!studentId && !!text.trim() : false,
+    mode === 'observe' ? !!picked && !!studentId : mode === 'note' ? !!noteClass && !!studentId && !!text.trim() : false,
   );
 
   function open(m: Mode) {
+    if (m === 'grade') {
+      finder = true;
+      return;
+    }
     mode = m;
     studentId = '';
     text = '';
@@ -58,9 +66,7 @@
   function submit(e: SubmitEvent) {
     e.preventDefault();
     if (!valid) return;
-    if (mode === 'grade' && picked) {
-      go(href.quick(picked.cls.id, picked.course.id));
-    } else if (mode === 'observe' && picked) {
+    if (mode === 'observe' && picked) {
       startObservation(picked.cls, picked.course, studentId);
       go(href.observation(picked.cls.id, picked.course.id, studentId));
     } else if (mode === 'note' && noteClass) {
@@ -133,8 +139,6 @@
         <span class="label">Notiz</span>
         <textarea class="field h-28 resize-y py-2 leading-relaxed" bind:value={text} placeholder="Was ist vorgefallen, was wurde besprochen?"></textarea>
       </label>
-    {:else if mode === 'grade'}
-      <p class="text-[0.75rem] text-slate-500">Öffnet die Schnelleingabe, in der du für den ganzen Kurs Noten einer Art nacheinander eintippst.</p>
     {:else if mode === 'observe' && running.has(studentId)}
       <p class="text-[0.75rem] text-slate-500">Für diese Person läuft bereits eine Beobachtung – sie wird geöffnet.</p>
     {/if}
@@ -144,3 +148,5 @@
     <button form="quick-action" class="btn btn-primary" disabled={!valid}>{mode === 'note' ? 'Speichern' : 'Öffnen'}</button>
   {/snippet}
 </Modal>
+
+{#if ctx}<GradeFinder bind:open={finder} {classes} {ctx} />{/if}

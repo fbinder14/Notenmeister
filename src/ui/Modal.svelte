@@ -12,6 +12,7 @@
     children,
     footer,
     onclose,
+    bare = false,
   }: {
     open?: boolean;
     title: string;
@@ -20,6 +21,8 @@
     children: Snippet;
     footer?: Snippet;
     onclose?: () => void;
+    /** Ohne Kopfzeile und Innenabstand: Der Inhalt gestaltet beides selbst. */
+    bare?: boolean;
   } = $props();
 
   function close() {
@@ -61,16 +64,20 @@
       transition:scale={{ duration: 200, start: 0.96, easing: cubicOut }}
       use:focusFirst
     >
-      <header class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 pb-4 pt-5 dark:border-line-dark">
-        <div>
-          <h2 class="text-[1rem] font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
-          {#if subtitle}<p class="mt-0.5 text-[0.8125rem] text-slate-500">{subtitle}</p>{/if}
-        </div>
-        <button type="button" class="btn btn-ghost -mr-2 -mt-1 h-8 w-8 px-0" onclick={close} aria-label="Schließen">
-          <Icon name="x" size={16} />
-        </button>
-      </header>
-      <div class="px-6 py-5">{@render children()}</div>
+      {#if bare}
+        {@render children()}
+      {:else}
+        <header class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 pb-4 pt-5 dark:border-line-dark">
+          <div>
+            <h2 class="text-[1rem] font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
+            {#if subtitle}<p class="mt-0.5 text-[0.8125rem] text-slate-500">{subtitle}</p>{/if}
+          </div>
+          <button type="button" class="btn btn-ghost -mr-2 -mt-1 h-8 w-8 px-0" onclick={close} aria-label="Schließen">
+            <Icon name="x" size={16} />
+          </button>
+        </header>
+        <div class="px-6 py-5">{@render children()}</div>
+      {/if}
       {#if footer}
         <footer class="flex items-center justify-end gap-2 rounded-b-card border-t border-slate-100 bg-slate-50/60 px-6 py-3.5 dark:border-line-dark dark:bg-white/[0.02]">
           {@render footer()}
