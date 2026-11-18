@@ -13,9 +13,15 @@
   import Modal from '../ui/Modal.svelte';
   import Segmented from '../ui/Segmented.svelte';
   import { SUBJECT_DOT } from '../ui/colors';
+  import { fontScale, FONT_SCALE_OPTIONS } from '../lib/state/fontScale.svelte';
 
   const core = $derived(app.core);
   const s = $derived(app.core.settings);
+
+  // Zusammenfassungen für die zugeklappten Bereiche
+  const activeYearName = $derived(core.years.find((y) => y.id === s.activeYearId)?.name ?? '');
+  const defaultKeyName = $derived(core.gradeKeys.find((k) => k.id === s.defaultGradeKeyId)?.name ?? '');
+  const activeTypes = $derived(core.types.filter((t) => !t.archived).length);
   const touch = () => app.touch();
 
   // Design und Rundung werden über Segmented gebunden; Änderungen speichern.
@@ -179,34 +185,193 @@
 
 <PageHeader title="Einstellungen" eyebrow="Alles bleibt lokal in diesem Browser" />
 
-<div class="mx-auto grid max-w-4xl gap-6 px-8 py-7">
-  <!-- Sicherheit und Sicherung -->
-  <section class="card p-6">
-    <div class="mb-5 flex items-center gap-3">
-      <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><Icon name="shield" size={18} /></span>
-      <div>
-        <h2 class="text-[0.9375rem] font-semibold">Sicherheit und Sicherung</h2>
-        <p class="text-[0.78125rem] text-slate-500">AES-256-GCM, Schlüssel aus dem Master-Passwort (PBKDF2, 600.000 Runden). Exporte sind immer verschlüsselt.</p>
+<div class="mx-auto grid max-w-4xl gap-7 px-8 py-7">
+  <!-- Allgemein -->
+  <section>
+    <h2 class="group-title">Allgemein</h2>
+    <div class="card divide-y divide-slate-100 dark:divide-line-dark">
+      <div class="setting-row">
+        <span>Design</span>
+        <Segmented bind:value={s.theme} options={[{ value: 'system', label: 'System' }, { value: 'hell', label: 'Hell' }, { value: 'dunkel', label: 'Dunkel' }]} />
       </div>
-    </div>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <button class="btn btn-soft h-11 justify-start" onclick={exportFile}><Icon name="download" size={16} /> Sicherung exportieren</button>
-      <button class="btn btn-soft h-11 justify-start" onclick={() => { importOpen = true; importText = null; importName = ''; importPw = ''; importErr = ''; }}><Icon name="upload" size={16} /> Sicherung importieren</button>
-      <button class="btn btn-soft h-11 justify-start" onclick={() => (pwOpen = true)}><Icon name="lock" size={16} /> Passwort ändern</button>
-      <label class="flex h-11 items-center justify-between gap-3 rounded-xl border border-slate-200 px-3.5 text-[0.8125rem] dark:border-line-dark">
-        <span class="flex items-center gap-2"><Icon name="clock" size={16} /> Automatisch sperren nach</span>
+      <div class="setting-row">
+        <div>
+          <div>Schriftgröße</div>
+          <div class="setting-hint">Gilt für die ganze App auf diesem Gerät.</div>
+        </div>
+        <Segmented bind:value={fontScale.value} options={FONT_SCALE_OPTIONS} />
+      </div>
+      <div class="setting-row">
+        <div>
+          <div>Vorschlag für die Zeugnisnote bei x,50</div>
+          <div class="setting-hint">Nur ein Vorschlag – die Note setzt immer die Lehrkraft.</div>
+        </div>
+        <Segmented bind:value={s.rounding} options={[{ value: 'mild', label: 'bessere Note' }, { value: 'streng', label: 'schlechtere Note' }]} />
+      </div>
+      <label class="setting-row">
+        <span>Automatisch sperren nach</span>
         <select class="field h-8 w-32" bind:value={s.autoLockMinutes} onchange={touch}>
           {#each [5, 10, 15, 30, 60] as m (m)}<option value={m}>{m} Minuten</option>{/each}
           <option value={0}>nie</option>
         </select>
       </label>
     </div>
+  </section>
 
-    <div class="mt-5 rounded-xl border border-slate-200 p-4 dark:border-line-dark">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+  <!-- Unterricht -->
+  <section>
+    <h2 class="group-title">Unterricht</h2>
+    <div class="card divide-y divide-slate-100 dark:divide-line-dark">
+      <!-- Schuljahre -->
+      <details class="group/d">
+        <summary class="setting-summary">
+          <span>Schuljahre <span class="setting-hint">· {core.years.length} {core.years.length === 1 ? 'Schuljahr' : 'Schuljahre'}{activeYearName ? ` · aktiv ${activeYearName}` : ''}</span></span>
+          <Icon name="chevron" size={16} class="text-slate-400 transition group-open/d:rotate-90" />
+        </summary>
+        <div class="setting-body">
+          <div class="grid gap-2">
+            {#each core.years as y (y.id)}
+              <div class="grid grid-cols-[7rem_1fr_1fr_1fr_auto] items-center gap-2 rounded-xl p-2 {s.activeYearId === y.id ? 'bg-brand-50/70 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : ''}">
+                <input class="field h-8" bind:value={y.name} onchange={touch} />
+                <label class="text-[0.6875rem] text-slate-500">Beginn<input class="field h-8" type="date" bind:value={y.start} onchange={touch} /></label>
+                <label class="text-[0.6875rem] text-slate-500">2. Halbjahr ab<input class="field h-8" type="date" bind:value={y.halfSwitch} onchange={touch} /></label>
+                <label class="text-[0.6875rem] text-slate-500">Ende<input class="field h-8" type="date" bind:value={y.end} onchange={touch} /></label>
+                {#if s.activeYearId === y.id}
+                  <span class="px-3 text-[0.75rem] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
+                {:else}
+                  <button class="btn btn-ghost h-8" onclick={() => activate(y.id)}>Aktivieren</button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+          <button class="btn btn-soft mt-3 h-8" onclick={addYear}><Icon name="plus" size={14} /> Schuljahr</button>
+        </div>
+      </details>
+
+      <!-- Fächer -->
+      <details class="group/d">
+        <summary class="setting-summary">
+          <span>Fächer <span class="setting-hint">· {core.subjects.length} {core.subjects.length === 1 ? 'Fach' : 'Fächer'}</span></span>
+          <Icon name="chevron" size={16} class="text-slate-400 transition group-open/d:rotate-90" />
+        </summary>
+        <div class="setting-body">
+          {#if core.subjects.length}
+            <div class="grid gap-2">
+              {#each core.subjects as sub (sub.id)}
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1">
+                    {#each SUBJECT_COLORS as c (c)}
+                      <button class="h-4 w-4 rounded-full transition {SUBJECT_DOT[c]} {sub.color === c ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-panel-dark' : 'opacity-40 hover:opacity-100'}" onclick={() => updateSubject(sub.id, { color: c })} aria-label="Farbe {c}"></button>
+                    {/each}
+                  </div>
+                  <input class="field h-8 flex-1" value={sub.name} onchange={(e) => updateSubject(sub.id, { name: (e.target as HTMLInputElement).value })} />
+                  <input class="field h-8 w-20" value={sub.short} onchange={(e) => updateSubject(sub.id, { short: (e.target as HTMLInputElement).value })} />
+                  <button class="btn btn-ghost h-8 w-8 px-0 text-rose-600" disabled={subjectInUse(sub.id)} title={subjectInUse(sub.id) ? 'Wird in einem Unterricht verwendet' : 'Löschen'} onclick={() => removeSubject(sub.id)}><Icon name="trash" size={14} /></button>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-[0.8125rem] text-slate-500">Fächer legst du beim Hinzufügen eines Unterrichts in einer Klasse an.</p>
+          {/if}
+        </div>
+      </details>
+
+      <!-- Leistungsnachweise -->
+      <details class="group/d">
+        <summary class="setting-summary">
+          <span>Arten von Leistungsnachweisen und Gewichte <span class="setting-hint">· {activeTypes} {activeTypes === 1 ? 'Art' : 'Arten'}</span></span>
+          <Icon name="chevron" size={16} class="text-slate-400 transition group-open/d:rotate-90" />
+        </summary>
+        <div class="setting-body">
+          <p class="mb-3 text-[0.78125rem] text-slate-500">Vorbelegt nach RSO §§ 17–19 und § 23. Das Gewicht kannst du hier allgemein und je Leistungsnachweis anpassen.</p>
+          <table class="w-full text-[0.8125rem]">
+            <thead class="text-left text-[0.6875rem] uppercase tracking-wider text-slate-400">
+              <tr><th class="py-2 font-semibold">Bezeichnung</th><th class="font-semibold">Kürzel</th><th class="font-semibold">Kategorie</th><th class="font-semibold">Form</th><th class="font-semibold">Gewicht</th><th></th></tr>
+            </thead>
+            <tbody>
+              {#each core.types as t (t.id)}
+                <tr class="border-t border-slate-100 dark:border-line-dark {t.archived ? 'opacity-50' : ''}">
+                  <td class="py-1.5 pr-2">{#if t.builtin}{t.name}{:else}<input class="field h-8" bind:value={t.name} onchange={touch} />{/if}</td>
+                  <td class="pr-2"><input class="field h-8 w-16" bind:value={t.short} onchange={touch} /></td>
+                  <td class="pr-2">
+                    {#if t.builtin}{t.category === 'gross' ? 'groß' : 'klein'}{:else}
+                      <select class="field h-8 w-24" bind:value={t.category} onchange={touch}><option value="gross">groß</option><option value="klein">klein</option></select>
+                    {/if}
+                  </td>
+                  <td class="pr-2">
+                    {#if t.builtin}{t.mode}{:else}
+                      <select class="field h-8 w-32" bind:value={t.mode} onchange={touch}><option value="schriftlich">schriftlich</option><option value="muendlich">mündlich</option><option value="praktisch">praktisch</option></select>
+                    {/if}
+                  </td>
+                  <td class="pr-2"><input class="field h-8 w-20" type="number" min="0" step="0.5" bind:value={t.weight} onchange={touch} /></td>
+                  <td class="text-right">
+                    <button class="btn btn-ghost h-8 px-2 text-[0.75rem]" onclick={() => { t.archived = !t.archived; touch(); }}>{t.archived ? 'Einblenden' : 'Ausblenden'}</button>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+          <button class="btn btn-soft mt-3 h-8" onclick={addType}><Icon name="plus" size={14} /> Eigene Art</button>
+        </div>
+      </details>
+
+      <!-- Notenschlüssel -->
+      <details class="group/d">
+        <summary class="setting-summary">
+          <span>Notenschlüssel <span class="setting-hint">· {core.gradeKeys.length} Schlüssel{defaultKeyName ? ` · Standard: „${defaultKeyName}“` : ''}</span></span>
+          <Icon name="chevron" size={16} class="text-slate-400 transition group-open/d:rotate-90" />
+        </summary>
+        <div class="setting-body">
+          <p class="mb-3 text-[0.78125rem] text-slate-500">Mindestanteil der Höchstpunktzahl in Prozent für die Noten 1 bis 5; darunter Note 6. Grenzen werden auf halbe Punkte aufgerundet.</p>
+          <div class="grid gap-3">
+            {#each core.gradeKeys as k (k.id)}
+              <div class="rounded-xl border border-slate-200 p-3 dark:border-line-dark">
+                <div class="flex flex-wrap items-center gap-2">
+                  <input class="field h-8 w-48" bind:value={k.name} onchange={touch} />
+                  {#each k.thresholds as v, i (i)}
+                    <label class="flex items-center gap-1 text-[0.75rem] text-slate-500">
+                      {i + 1}:<input class="field h-8 w-16" type="number" min="0" max="100" step="0.5" value={v} onchange={(e) => setThreshold(k, i, Number((e.target as HTMLInputElement).value))} />%
+                    </label>
+                  {/each}
+                  <label class="ml-auto flex items-center gap-1.5 text-[0.75rem]">
+                    <input type="radio" name="defkey" class="accent-brand-600" checked={s.defaultGradeKeyId === k.id} onchange={() => { s.defaultGradeKeyId = k.id; touch(); }} /> Standard
+                  </label>
+                  <button
+                    class="btn btn-ghost h-8 w-8 px-0 text-rose-600"
+                    disabled={core.gradeKeys.length < 2}
+                    title={core.gradeKeys.length < 2 ? 'Mindestens ein Notenschlüssel muss bleiben' : 'Löschen'}
+                    aria-label="Notenschlüssel {k.name} löschen"
+                    onclick={() => askRemoveKey(k)}><Icon name="trash" size={14} /></button
+                  >
+                </div>
+                {#if keyErr[k.id]}<p class="mt-1.5 text-[0.75rem] text-rose-600">{keyErr[k.id]}</p>{/if}
+              </div>
+            {/each}
+          </div>
+          <button class="btn btn-soft mt-3 h-8" onclick={addKey}><Icon name="plus" size={14} /> Schlüssel</button>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- Daten und Sicherheit -->
+  <section>
+    <h2 class="group-title">Daten und Sicherheit</h2>
+    <div class="card divide-y divide-slate-100 dark:divide-line-dark">
+      <div class="setting-row">
         <div>
-          <div class="flex items-center gap-2 text-[0.84375rem] font-medium"><Icon name="folder" size={16} /> Automatische Sicherung in einen Ordner</div>
-          <p class="mt-0.5 text-[0.75rem] text-slate-500">
+          <div class="flex items-center gap-2"><Icon name="shield" size={15} class="text-emerald-600 dark:text-emerald-300" /> Sicherung als Datei</div>
+          <div class="setting-hint">Exporte sind immer verschlüsselt (AES-256-GCM, Schlüssel aus dem Master-Passwort).</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-soft h-8" onclick={exportFile}><Icon name="download" size={14} /> Exportieren</button>
+          <button class="btn btn-soft h-8" onclick={() => { importOpen = true; importText = null; importName = ''; importPw = ''; importErr = ''; }}><Icon name="upload" size={14} /> Importieren</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2"><Icon name="folder" size={15} /> Automatische Sicherung in einen Ordner</div>
+          <div class="setting-hint">
             {#if !folderBackupSupported()}
               In diesem Browser nicht verfügbar (Chrome nötig).
             {:else if app.folderBackup.name}
@@ -214,7 +379,7 @@
             {:else}
               Schreibt nach Änderungen eine verschlüsselte Sicherung, z. B. auf einen USB-Stick oder in einen gesicherten Ordner.
             {/if}
-          </p>
+          </div>
         </div>
         {#if folderBackupSupported()}
           <div class="flex gap-2">
@@ -227,151 +392,23 @@
           </div>
         {/if}
       </div>
+      <div class="setting-row">
+        <span class="flex items-center gap-2"><Icon name="lock" size={15} /> Master-Passwort</span>
+        <button class="btn btn-soft h-8" onclick={() => (pwOpen = true)}>Ändern</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="text-rose-700 dark:text-rose-300">Alle Daten in diesem Browser löschen</div>
+          <div class="setting-hint">Löscht den verschlüsselten Tresor unwiderruflich. Exportierte Sicherungsdateien bleiben unberührt.</div>
+        </div>
+        <button class="btn btn-danger h-8" onclick={() => { wipeOpen = true; wipeConfirm = ''; }}><Icon name="trash" size={14} /> Löschen …</button>
+      </div>
     </div>
     {#if !app.persisted}
-      <p class="mt-3 flex items-center gap-2 text-[0.75rem] text-amber-700 dark:text-amber-300">
+      <p class="mt-3 flex items-center gap-2 px-1 text-[0.75rem] text-amber-700 dark:text-amber-300">
         <Icon name="alert" size={14} /> Der Browser hat dauerhaften Speicher nicht bestätigt. Installiere die App (Symbol in der Adressleiste) und sichere regelmäßig.
       </p>
     {/if}
-  </section>
-
-  <!-- Darstellung und Berechnung -->
-  <section class="card grid gap-5 p-6">
-    <h2 class="text-[0.9375rem] font-semibold">Darstellung und Berechnung</h2>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <span class="text-[0.8125rem]">Design</span>
-      <Segmented bind:value={s.theme} options={[{ value: 'system', label: 'System' }, { value: 'hell', label: 'Hell' }, { value: 'dunkel', label: 'Dunkel' }]} />
-    </div>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div class="text-[0.8125rem]">Vorschlag für die Zeugnisnote bei x,50</div>
-        <div class="text-[0.75rem] text-slate-500">Nur ein Vorschlag – die Note setzt immer die Lehrkraft.</div>
-      </div>
-      <Segmented bind:value={s.rounding} options={[{ value: 'mild', label: 'bessere Note' }, { value: 'streng', label: 'schlechtere Note' }]} />
-    </div>
-  </section>
-
-  <!-- Schuljahre -->
-  <section class="card p-6">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-[0.9375rem] font-semibold">Schuljahre</h2>
-      <button class="btn btn-soft h-8" onclick={addYear}><Icon name="plus" size={14} /> Schuljahr</button>
-    </div>
-    <div class="grid gap-2">
-      {#each core.years as y (y.id)}
-        <div class="grid grid-cols-[7rem_1fr_1fr_1fr_auto] items-center gap-2 rounded-xl p-2 {s.activeYearId === y.id ? 'bg-brand-50/70 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : ''}">
-          <input class="field h-8" bind:value={y.name} onchange={touch} />
-          <label class="text-[0.6875rem] text-slate-500">Beginn<input class="field h-8" type="date" bind:value={y.start} onchange={touch} /></label>
-          <label class="text-[0.6875rem] text-slate-500">2. Halbjahr ab<input class="field h-8" type="date" bind:value={y.halfSwitch} onchange={touch} /></label>
-          <label class="text-[0.6875rem] text-slate-500">Ende<input class="field h-8" type="date" bind:value={y.end} onchange={touch} /></label>
-          {#if s.activeYearId === y.id}
-            <span class="px-3 text-[0.75rem] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
-          {:else}
-            <button class="btn btn-ghost h-8" onclick={() => activate(y.id)}>Aktivieren</button>
-          {/if}
-        </div>
-      {/each}
-    </div>
-  </section>
-
-  <!-- Fächer -->
-  <section class="card p-6">
-    <h2 class="mb-4 text-[0.9375rem] font-semibold">Fächer</h2>
-    {#if core.subjects.length}
-      <div class="grid gap-2">
-        {#each core.subjects as sub (sub.id)}
-          <div class="flex items-center gap-2">
-            <div class="flex gap-1">
-              {#each SUBJECT_COLORS as c (c)}
-                <button class="h-4 w-4 rounded-full transition {SUBJECT_DOT[c]} {sub.color === c ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-panel-dark' : 'opacity-40 hover:opacity-100'}" onclick={() => updateSubject(sub.id, { color: c })} aria-label="Farbe {c}"></button>
-              {/each}
-            </div>
-            <input class="field h-8 flex-1" value={sub.name} onchange={(e) => updateSubject(sub.id, { name: (e.target as HTMLInputElement).value })} />
-            <input class="field h-8 w-20" value={sub.short} onchange={(e) => updateSubject(sub.id, { short: (e.target as HTMLInputElement).value })} />
-            <button class="btn btn-ghost h-8 w-8 px-0 text-rose-600" disabled={subjectInUse(sub.id)} title={subjectInUse(sub.id) ? 'Wird in einem Unterricht verwendet' : 'Löschen'} onclick={() => removeSubject(sub.id)}><Icon name="trash" size={14} /></button>
-          </div>
-        {/each}
-      </div>
-    {:else}
-      <p class="text-[0.8125rem] text-slate-500">Fächer legst du beim Hinzufügen eines Unterrichts in einer Klasse an.</p>
-    {/if}
-  </section>
-
-  <!-- Leistungsnachweise -->
-  <section class="card p-6">
-    <div class="mb-1 flex items-center justify-between">
-      <h2 class="text-[0.9375rem] font-semibold">Arten von Leistungsnachweisen und Gewichte</h2>
-      <button class="btn btn-soft h-8" onclick={addType}><Icon name="plus" size={14} /> Eigene Art</button>
-    </div>
-    <p class="mb-4 text-[0.78125rem] text-slate-500">Vorbelegt nach RSO §§ 17–19 und § 23. Das Gewicht kannst du hier allgemein und je Leistungsnachweis anpassen.</p>
-    <table class="w-full text-[0.8125rem]">
-      <thead class="text-left text-[0.6875rem] uppercase tracking-wider text-slate-400">
-        <tr><th class="py-2 font-semibold">Bezeichnung</th><th class="font-semibold">Kürzel</th><th class="font-semibold">Kategorie</th><th class="font-semibold">Form</th><th class="font-semibold">Gewicht</th><th></th></tr>
-      </thead>
-      <tbody>
-        {#each core.types as t (t.id)}
-          <tr class="border-t border-slate-100 dark:border-line-dark {t.archived ? 'opacity-50' : ''}">
-            <td class="py-1.5 pr-2">{#if t.builtin}{t.name}{:else}<input class="field h-8" bind:value={t.name} onchange={touch} />{/if}</td>
-            <td class="pr-2"><input class="field h-8 w-16" bind:value={t.short} onchange={touch} /></td>
-            <td class="pr-2">
-              {#if t.builtin}{t.category === 'gross' ? 'groß' : 'klein'}{:else}
-                <select class="field h-8 w-24" bind:value={t.category} onchange={touch}><option value="gross">groß</option><option value="klein">klein</option></select>
-              {/if}
-            </td>
-            <td class="pr-2">
-              {#if t.builtin}{t.mode}{:else}
-                <select class="field h-8 w-32" bind:value={t.mode} onchange={touch}><option value="schriftlich">schriftlich</option><option value="muendlich">mündlich</option><option value="praktisch">praktisch</option></select>
-              {/if}
-            </td>
-            <td class="pr-2"><input class="field h-8 w-20" type="number" min="0" step="0.5" bind:value={t.weight} onchange={touch} /></td>
-            <td class="text-right">
-              <button class="btn btn-ghost h-8 px-2 text-[0.75rem]" onclick={() => { t.archived = !t.archived; touch(); }}>{t.archived ? 'Einblenden' : 'Ausblenden'}</button>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </section>
-
-  <!-- Notenschlüssel -->
-  <section class="card p-6">
-    <div class="mb-1 flex items-center justify-between">
-      <h2 class="text-[0.9375rem] font-semibold">Notenschlüssel</h2>
-      <button class="btn btn-soft h-8" onclick={addKey}><Icon name="plus" size={14} /> Schlüssel</button>
-    </div>
-    <p class="mb-4 text-[0.78125rem] text-slate-500">Mindestanteil der Höchstpunktzahl in Prozent für die Noten 1 bis 5; darunter Note 6. Grenzen werden auf halbe Punkte aufgerundet.</p>
-    <div class="grid gap-3">
-      {#each core.gradeKeys as k (k.id)}
-        <div class="rounded-xl border border-slate-200 p-3 dark:border-line-dark">
-          <div class="flex flex-wrap items-center gap-2">
-            <input class="field h-8 w-48" bind:value={k.name} onchange={touch} />
-            {#each k.thresholds as v, i (i)}
-              <label class="flex items-center gap-1 text-[0.75rem] text-slate-500">
-                {i + 1}:<input class="field h-8 w-16" type="number" min="0" max="100" step="0.5" value={v} onchange={(e) => setThreshold(k, i, Number((e.target as HTMLInputElement).value))} />%
-              </label>
-            {/each}
-            <label class="ml-auto flex items-center gap-1.5 text-[0.75rem]">
-              <input type="radio" name="defkey" class="accent-brand-600" checked={s.defaultGradeKeyId === k.id} onchange={() => { s.defaultGradeKeyId = k.id; touch(); }} /> Standard
-            </label>
-            <button
-              class="btn btn-ghost h-8 w-8 px-0 text-rose-600"
-              disabled={core.gradeKeys.length < 2}
-              title={core.gradeKeys.length < 2 ? 'Mindestens ein Notenschlüssel muss bleiben' : 'Löschen'}
-              aria-label="Notenschlüssel {k.name} löschen"
-              onclick={() => askRemoveKey(k)}><Icon name="trash" size={14} /></button
-            >
-          </div>
-          {#if keyErr[k.id]}<p class="mt-1.5 text-[0.75rem] text-rose-600">{keyErr[k.id]}</p>{/if}
-        </div>
-      {/each}
-    </div>
-  </section>
-
-  <!-- Gefahrenzone -->
-  <section class="card border-rose-200 p-6 dark:border-rose-500/20">
-    <h2 class="text-[0.9375rem] font-semibold text-rose-700 dark:text-rose-300">Alle Daten in diesem Browser löschen</h2>
-    <p class="mt-1 text-[0.78125rem] text-slate-500">Löscht den verschlüsselten Tresor unwiderruflich. Exportierte Sicherungsdateien bleiben unberührt.</p>
-    <button class="btn btn-danger mt-4" onclick={() => { wipeOpen = true; wipeConfirm = ''; }}><Icon name="trash" size={15} /> Alles löschen …</button>
   </section>
 
   <p class="pb-4 text-center text-[0.6875rem] text-slate-400">Notenmeister 2.0 · keine Netzwerkverbindungen · keine Telemetrie</p>

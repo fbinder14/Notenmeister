@@ -2,6 +2,8 @@ import './styles/app.css';
 import { mount } from 'svelte';
 import App from './App.svelte';
 import { app } from './lib/state/app.svelte';
+// Schriftgröße vor dem ersten Zeichnen setzen, damit nichts springt.
+import './lib/state/fontScale.svelte';
 
 mount(App, { target: document.getElementById('app')! });
 void app.init();

@@ -25,6 +25,21 @@
       ],
       "port": 4318,
       "url": "http://127.0.0.1:4318"
+    },
+    {
+      "name": "notenmeister-pruefung",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4327",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 4327,
+      "url": "http://127.0.0.1:4327"
     }
   ]
 }
