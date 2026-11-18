@@ -6,7 +6,6 @@
   import { validateThresholds } from '../lib/domain/gradeKey';
   import { suggestYear, SUBJECT_COLORS } from '../lib/domain/defaults';
   import { gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
-  import { backupFileName } from '../lib/storage/backupFile';
   import { chooseBackupDir, folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
   import type { AssessmentType, GradeKey } from '../lib/domain/types';
   import PageHeader from '../ui/PageHeader.svelte';
@@ -34,11 +33,7 @@
   // ---- Sicherung ----
   async function exportFile() {
     try {
-      const text = await app.exportBackup();
-      const url = URL.createObjectURL(new Blob([text], { type: 'application/octet-stream' }));
-      const a = Object.assign(document.createElement('a'), { href: url, download: backupFileName() });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await app.downloadBackup();
       toast.success('Verschlüsselte Sicherung exportiert.');
     } catch (e) {
       toast.error((e as Error).message);

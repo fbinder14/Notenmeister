@@ -8,7 +8,7 @@
   let { title, text, onshow, rows = [72, 55, 64, 48, 60] }: { title: string; text: string; onshow: () => void; rows?: number[] } = $props();
 </script>
 
-<div class="pointer-events-none select-none blur-[3px]" aria-hidden="true">
+<div class="pointer-events-none min-h-52 select-none blur-[3px]" aria-hidden="true">
   {#each rows as w, i (i)}
     <div class="flex items-center gap-3 border-t border-slate-100 px-4 py-3 first:border-t-0 dark:border-line-dark">
       <div class="h-7 w-7 rounded-lg bg-slate-100 dark:bg-white/5"></div>

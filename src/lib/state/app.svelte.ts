@@ -1,9 +1,9 @@
 import { changePassword as rewrap, createVault, unlockVault, type VaultHeader } from '../crypto/vault';
 import { emptyCore } from '../domain/defaults';
 import type { Core, Data, SchoolClass, SchoolYear } from '../domain/types';
-import { buildBackup, openBackup, parseBackup } from '../storage/backupFile';
+import { backupFileName, buildBackup, openBackup, parseBackup } from '../storage/backupFile';
 import { ensurePermission, getBackupDir, writeBackup } from '../storage/folderBackup';
-import { requestPersistence, wipe } from '../storage/idb';
+import { getMeta, requestPersistence, STORE_META, wipe, writeAll } from '../storage/idb';
 import { CORE_KEY, loadData, loadHeader, replaceAll, saveChunks, saveHeader } from '../storage/repository';
 import { toast } from './toast.svelte';
 
@@ -21,6 +21,8 @@ function readPublicFlag(): boolean {
   }
 }
 const FOLDER_BACKUP_DELAY = 60_000;
+/** Zeitpunkt der letzten Sicherung (Export oder Ordner); nur ein Zeitstempel, unverschlüsselt. */
+const LAST_BACKUP_KEY = 'lastBackupAt';
 
 class App {
   phase = $state<Phase>('loading');
@@ -28,6 +30,8 @@ class App {
   saveState = $state<SaveState>('idle');
   lastSavedAt = $state<Date | null>(null);
   folderBackup = $state<{ name: string | null; ok: boolean; lastAt: Date | null }>({ name: null, ok: false, lastAt: null });
+  /** Letzte Sicherung, egal ob als Datei exportiert oder in den Ordner geschrieben. */
+  lastBackupAt = $state<Date | null>(null);
   persisted = $state(false);
   /**
    * Öffentlicher Modus (Beamer, Schüler am Pult): nur Klassen- und Schülernamen,
@@ -197,6 +201,21 @@ class App {
     return buildBackup(this.#header!, this.#key!, $state.snapshot(this.data!) as Data);
   }
 
+  /** Lädt eine verschlüsselte Sicherungsdatei herunter und merkt sich den Zeitpunkt. */
+  async downloadBackup() {
+    const text = await this.exportBackup();
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/octet-stream' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: backupFileName() });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await this.#markBackup();
+  }
+
+  async #markBackup(at = new Date()) {
+    this.lastBackupAt = at;
+    await writeAll([{ store: STORE_META, key: LAST_BACKUP_KEY, value: at.toISOString() }]).catch((e) => console.error(e));
+  }
+
   /** Ersetzt den gesamten Bestand durch eine Sicherung. Danach gilt das Passwort der Sicherung. */
   async importBackup(text: string, password: string) {
     const { header, key, data } = await openBackup(parseBackup(text), password);
@@ -227,6 +246,8 @@ class App {
   async #initFolderBackup() {
     const dir = await getBackupDir().catch(() => undefined);
     this.folderBackup = { name: dir?.name ?? null, ok: dir ? await ensurePermission(dir, false) : false, lastAt: null };
+    const last = await getMeta<string>(LAST_BACKUP_KEY).catch(() => undefined);
+    this.lastBackupAt = last ? new Date(last) : null;
   }
 
   async refreshFolderBackup() {
@@ -256,6 +277,7 @@ class App {
     try {
       await writeBackup(dir, await this.exportBackup());
       this.folderBackup = { name: dir.name, ok: true, lastAt: new Date() };
+      await this.#markBackup(this.folderBackup.lastAt!);
       return true;
     } catch (e) {
       console.error(e);
