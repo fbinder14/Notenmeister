@@ -7,6 +7,7 @@ export type Route =
   | { name: 'assessment'; classId: string; courseId: string; assessmentId: string }
   | { name: 'quick'; classId: string; courseId: string }
   | { name: 'report'; classId: string; courseId: string }
+  | { name: 'observation'; classId: string; courseId: string; studentId: string }
   | { name: 'student'; classId: string; studentId: string }
   | { name: 'print'; classId: string; courseId: string }
   | { name: 'settings' };
@@ -22,6 +23,7 @@ function parse(hash: string): Route {
         if (p[3] === 'ln' && p[4]) return { name: 'assessment', classId: p[1], courseId: p[2], assessmentId: p[4] };
         if (p[3] === 'erfassen') return { name: 'quick', classId: p[1], courseId: p[2] };
         if (p[3] === 'zeugnis') return { name: 'report', classId: p[1], courseId: p[2] };
+        if (p[3] === 'beobachtung' && p[4]) return { name: 'observation', classId: p[1], courseId: p[2], studentId: p[4] };
         return { name: 'course', classId: p[1], courseId: p[2] };
       }
       break;
@@ -56,6 +58,7 @@ export const href = {
   assessment: (c: string, k: string, a: string) => `#/kurs/${c}/${k}/ln/${a}`,
   quick: (c: string, k: string) => `#/kurs/${c}/${k}/erfassen`,
   report: (c: string, k: string) => `#/kurs/${c}/${k}/zeugnis`,
+  observation: (c: string, k: string, s: string) => `#/kurs/${c}/${k}/beobachtung/${s}`,
   student: (c: string, s: string) => `#/schueler/${c}/${s}`,
   print: (c: string, k: string) => `#/druck/${c}/${k}`,
   settings: () => '#/einstellungen',

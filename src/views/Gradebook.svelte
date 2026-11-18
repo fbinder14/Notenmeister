@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import { app } from '../lib/state/app.svelte';
   import { courseWarnings, studentCompleteness } from '../lib/domain/rules';
+  import { observationStats, openPhase } from '../lib/domain/observation';
   import { entriesFor, formatAvg, halfOf, needsReplacement, summarize, suggestGrade, weightedAverage, type Ctx } from '../lib/domain/grading';
   import {
     courseStudents,
@@ -10,13 +11,14 @@
     fmtShortDate,
     gradeKeyById,
     setAssessmentGrade,
+    startObservation,
     sortedAssessments,
     subjectOf,
     todayIso,
     typeById,
     yearOf,
   } from '../lib/state/actions';
-  import { href } from '../lib/state/router.svelte';
+  import { go, href } from '../lib/state/router.svelte';
   import type { Assessment, Grade, Period, Student } from '../lib/domain/types';
   import PageHeader from '../ui/PageHeader.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -25,6 +27,7 @@
   import GradeBadge from '../ui/GradeBadge.svelte';
   import GradeCell from '../ui/GradeCell.svelte';
   import WarningList from '../ui/WarningList.svelte';
+  import ObservationBadge from '../ui/ObservationBadge.svelte';
   import GradeTrash from '../ui/GradeTrash.svelte';
   import AssessmentDialog from '../dialogs/AssessmentDialog.svelte';
   import CourseDialog from '../dialogs/CourseDialog.svelte';
@@ -76,6 +79,20 @@
   /** Versäumte Nachweise des Zeitraums, für die noch die Ersatznote fehlt. */
   function openReplacements(studentId: string): Assessment[] {
     return assessments.filter((a) => needsReplacement(gradeMap.get(`${a.id}|${studentId}`)) && !replacements.has(`${a.id}|${studentId}`));
+  }
+
+  /** Herkunft einer Note aus einer Unterrichtsbeobachtung, für den Tooltip. */
+  function observationNote(g: Grade): string {
+    const p = g.observationId ? course?.observations?.find((x) => x.id === g.observationId) : undefined;
+    if (!p) return '';
+    const s = observationStats(p.entries);
+    return ` · aus Beobachtung ${s.first ? `${fmtShortDate(s.first)}–${fmtShortDate(s.last!)}` : ''} (${s.count})`;
+  }
+
+  function beginObservation(s: Student) {
+    if (!cls || !course) return;
+    startObservation(cls, course, s.id);
+    go(href.observation(cls.id, course.id, s.id));
   }
 
   function assessmentLabel(a: Assessment): string {
@@ -193,6 +210,9 @@
                     {s.lastName}, <span class="font-normal text-slate-500">{s.firstName}</span>
                   </a>
                   {#if s.support}<div class="truncate text-[0.65625rem] text-violet-600 dark:text-violet-300">{s.support}</div>{/if}
+                  {#if openPhase(course, s.id)}
+                    <div class="mt-0.5"><ObservationBadge phase={openPhase(course, s.id)!} link={href.observation(cls.id, course.id, s.id)} /></div>
+                  {/if}
                 </td>
                 {#each assessments as a, ci (a.id)}
                   {@const g = gradeMap.get(`${a.id}|${s.id}`)}
@@ -214,7 +234,7 @@
                     {#each singles(s.id) as g (g.id)}
                       {@const t = typeById(g.typeId)}
                       {@const rep = g.replacesAssessmentId ? course.assessments.find((x) => x.id === g.replacesAssessmentId) : undefined}
-                      <button class="flex items-center gap-0.5 transition hover:-translate-y-px" onclick={() => (gradeDlg = { student: s, grade: g })} title="{t?.name ?? ''}{rep ? ` · Ersatz für ${typeById(rep.typeId)?.name ?? 'Leistungsnachweis'} vom ${fmtShortDate(rep.date)}` : ''}{g.title ? ` · ${g.title}` : ''} · {new Date(g.performedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}{g.comment ? `\n${g.comment}` : ''}">
+                      <button class="flex items-center gap-0.5 transition hover:-translate-y-px" onclick={() => (gradeDlg = { student: s, grade: g })} title="{t?.name ?? ''}{observationNote(g)}{rep ? ` · Ersatz für ${typeById(rep.typeId)?.name ?? 'Leistungsnachweis'} vom ${fmtShortDate(rep.date)}` : ''}{g.title ? ` · ${g.title}` : ''} · {new Date(g.performedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}{g.comment ? `\n${g.comment}` : ''}">
                         <GradeBadge value={g.value} status={g.status} size="sm" />
                         {#if rep}<span class="text-[0.65625rem] font-medium text-emerald-600 dark:text-emerald-400">← {typeById(rep.typeId)?.short ?? '?'}</span>{/if}
                       </button>
@@ -231,6 +251,11 @@
                     <button class="grid h-6 w-6 place-items-center rounded-md text-slate-300 opacity-0 transition hover:bg-brand-50 hover:text-brand-600 group-hover:opacity-100 dark:hover:bg-white/10" onclick={() => (gradeDlg = { student: s, grade: null })} aria-label="Einzelnote hinzufügen">
                       <Icon name="plus" size={13} stroke={2.25} />
                     </button>
+                    {#if !openPhase(course, s.id)}
+                      <button class="grid h-6 w-6 place-items-center rounded-md text-slate-300 opacity-0 transition hover:bg-brand-50 hover:text-brand-600 group-hover:opacity-100 dark:hover:bg-white/10" onclick={() => beginObservation(s)} title="Unterrichtsbeobachtung starten" aria-label="Unterrichtsbeobachtung starten">
+                        <Icon name="eye" size={13} stroke={2} />
+                      </button>
+                    {/if}
                   </div>
                 </td>
                 <td class="border-b border-l border-slate-100 bg-slate-50/50 px-2 text-center dark:border-line-dark dark:bg-white/[0.015]">

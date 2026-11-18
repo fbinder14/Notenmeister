@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
   import { itemTime, recentLog, type LogItem } from '../lib/domain/logbook';
   import { formatAvg, weightedAverage } from '../lib/domain/grading';
   import { clearLog, NOTE_TOPICS, subjectOf, typeById } from '../lib/state/actions';
@@ -7,6 +6,9 @@
   import type { GradeValue, LogEntry, SchoolClass } from '../lib/domain/types';
   import Icon, { type IconName } from './Icon.svelte';
   import GradeBadge from './GradeBadge.svelte';
+  import Locked from './Locked.svelte';
+  import RevealTimer from './RevealTimer.svelte';
+  import { Reveal } from '../lib/state/reveal.svelte';
 
   /**
    * „Letzte Aktionen“ (Variante A): Der Inhalt ist zunächst verdeckt und wird erst
@@ -16,14 +18,15 @@
    */
   let { classes }: { classes: SchoolClass[] } = $props();
 
-  const SHOW_SECONDS = 60;
   const PAGE = 8;
 
-  let open = $state(false);
-  let left = $state(SHOW_SECONDS);
   let more = $state(false);
   let confirmClear = $state(false);
-  let timer: ReturnType<typeof setInterval> | null = null;
+  const reveal = new Reveal(60, () => {
+    more = false;
+    confirmClear = false;
+  });
+  $effect(() => reveal.attach());
 
   const items = $derived(recentLog(classes));
   const shown = $derived(items.slice(0, more ? 40 : PAGE));
@@ -35,45 +38,13 @@
     return items.filter((it) => itemTime(it) >= iso).length;
   });
 
-  function show() {
-    open = true;
-    left = SHOW_SECONDS;
-    if (timer) clearInterval(timer);
-    timer = setInterval(() => {
-      left--;
-      if (left <= 0) hide();
-    }, 1000);
-  }
-
-  function hide() {
-    open = false;
-    more = false;
-    confirmClear = false;
-    if (timer) clearInterval(timer);
-    timer = null;
-  }
-
-  function onvisibility() {
-    if (document.visibilityState === 'hidden') hide();
-  }
-
-  $effect(() => {
-    addEventListener('blur', hide);
-    document.addEventListener('visibilitychange', onvisibility);
-    return () => {
-      removeEventListener('blur', hide);
-      document.removeEventListener('visibilitychange', onvisibility);
-    };
-  });
-  onDestroy(() => timer && clearInterval(timer));
-
   function doClear() {
     if (!confirmClear) {
       confirmClear = true;
       return;
     }
     clearLog();
-    hide();
+    reveal.hide();
   }
 
   // ---------- Anzeige ----------
@@ -166,43 +137,18 @@
 <div>
   <div class="mb-3 flex items-center gap-2">
     <h2 class="flex-1 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Letzte Aktionen</h2>
-    {#if open}
-      <span class="flex items-center gap-1.5 text-[0.75rem] tabular-nums text-slate-500" title="Wird danach automatisch wieder verdeckt">
-        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{left} s
-      </span>
-      <button class="btn btn-ghost h-7 px-2 text-[0.75rem]" onclick={hide}><Icon name="eye" size={14} /> Verbergen</button>
-    {/if}
+    <RevealTimer {reveal} />
   </div>
 
   <div class="card relative overflow-hidden">
     {#if !items.length}
       <p class="px-4 py-5 text-[0.8125rem] text-slate-500">Noch keine Aktionen protokolliert. Hier erscheinen künftig erfasste Noten, neue Leistungsnachweise und Notizen.</p>
-    {:else if !open}
-      <!-- Platzhalter: verdeckt stehen keine echten Daten im Dokument. -->
-      <div class="pointer-events-none select-none blur-[3px]" aria-hidden="true">
-        {#each [72, 55, 64, 48, 60] as w, i (i)}
-          <div class="flex items-center gap-3 border-t border-slate-100 px-4 py-3 first:border-t-0 dark:border-line-dark">
-            <div class="h-7 w-7 rounded-lg bg-slate-100 dark:bg-white/5"></div>
-            <div class="flex-1 space-y-1.5">
-              <div class="h-2.5 rounded-full bg-slate-200/80 dark:bg-white/10" style="width: {w}%"></div>
-              <div class="h-2 rounded-full bg-slate-100 dark:bg-white/5" style="width: {w - 25}%"></div>
-            </div>
-            <div class="h-2 w-8 rounded-full bg-slate-100 dark:bg-white/5"></div>
-          </div>
-        {/each}
-      </div>
-      <div class="absolute inset-0 grid place-items-center bg-white/40 p-5 text-center dark:bg-panel-dark/40">
-        <div class="max-w-72">
-          <div class="mx-auto mb-2.5 grid h-10 w-10 place-items-center rounded-xl border border-slate-200/70 bg-white text-slate-500 shadow-soft dark:border-line-dark dark:bg-panel-dark">
-            <Icon name="lock" size={18} />
-          </div>
-          <div class="text-[0.875rem] font-semibold text-slate-900 dark:text-white">
-            {sinceYesterday ? `${sinceYesterday} Aktion${sinceYesterday === 1 ? '' : 'en'} seit gestern` : 'Keine Aktionen seit gestern'}
-          </div>
-          <p class="mb-3 mt-1 text-[0.75rem] text-slate-500">Aus Datenschutzgründen verdeckt. Wird nach {SHOW_SECONDS} Sekunden automatisch wieder ausgeblendet.</p>
-          <button class="btn btn-primary" onclick={show}><Icon name="eye" size={15} /> Einblenden</button>
-        </div>
-      </div>
+    {:else if !reveal.open}
+      <Locked
+        title={sinceYesterday ? `${sinceYesterday} Aktion${sinceYesterday === 1 ? '' : 'en'} seit gestern` : 'Keine Aktionen seit gestern'}
+        text="Aus Datenschutzgründen verdeckt. Wird nach {reveal.seconds} Sekunden automatisch wieder ausgeblendet."
+        onshow={reveal.show}
+      />
     {:else}
       <div class="animate-fade-up">
         {#each days as d (d.label)}

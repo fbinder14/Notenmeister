@@ -1,6 +1,8 @@
 <script lang="ts">
   import { app } from '../lib/state/app.svelte';
-  import { findClass, removeCourse, removeStudent, sortStudents, subjectOf, updateStudent } from '../lib/state/actions';
+  import { findClass, removeCourse, removeStudent, sortStudents, startObservation, subjectOf, updateStudent } from '../lib/state/actions';
+  import { openPhase } from '../lib/domain/observation';
+  import ObservationBadge from '../ui/ObservationBadge.svelte';
   import { href, go } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
   import PageHeader from '../ui/PageHeader.svelte';
@@ -26,6 +28,22 @@
 
   const students = $derived(cls ? sortStudents(cls.students) : []);
   const noteCount = $derived((cls?.notes ?? []).reduce((m, n) => m.set(n.studentId, (m.get(n.studentId) ?? 0) + 1), new Map<string, number>()));
+
+  /** Auswahl des Fachs, in dem eine Beobachtung gestartet werden soll. */
+  let observeFor = $state<Student | null>(null);
+  const coursesOf = (s: Student) => (cls ? cls.courses.filter((c) => !c.excludedStudentIds.includes(s.id)) : []);
+
+  function observe(s: Student) {
+    const list = coursesOf(s);
+    if (list.length === 1) begin(s, list[0]);
+    else observeFor = s;
+  }
+
+  function begin(s: Student, c: Course) {
+    if (!cls) return;
+    startObservation(cls, c, s.id);
+    go(href.observation(cls.id, c.id, s.id));
+  }
 
   function openStudent(s: Student) {
     editStudent = s;
@@ -134,10 +152,17 @@
                   <td class="px-4 py-2">
                     <a class="font-medium hover:text-brand-600" href={href.student(cls.id, s.id)}>{s.lastName}, {s.firstName}</a>
                     {#if noteCount.get(s.id)}<span class="ml-2 rounded-full bg-sky-50 px-2 py-0.5 text-[0.6875rem] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300" title="Pädagogische Notizen">{noteCount.get(s.id)} Notiz{noteCount.get(s.id) === 1 ? '' : 'en'}</span>{/if}
+                    {#each cls.courses as c (c.id)}
+                      {@const p = openPhase(c, s.id)}
+                      {#if p}<span class="ml-2"><ObservationBadge phase={p} link={href.observation(cls.id, c.id, s.id)} label={subjectOf(c)?.short ?? 'Beobachtung'} /></span>{/if}
+                    {/each}
                     {#if s.leftAt}<span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[0.6875rem] dark:bg-white/10">ausgetreten {new Date(s.leftAt).toLocaleDateString('de-DE')}</span>{/if}
                   </td>
                   <td class="px-4 py-2 text-[0.75rem] text-slate-500">{s.support ?? ''}</td>
                   <td class="px-4 py-2 text-right">
+                    {#if !s.leftAt && coursesOf(s).some((c) => !openPhase(c, s.id))}
+                      <button class="btn btn-ghost h-7 px-2 opacity-0 transition group-hover:opacity-100" onclick={() => observe(s)} title="Unterrichtsbeobachtung starten" aria-label="Unterrichtsbeobachtung starten"><Icon name="eye" size={14} /></button>
+                    {/if}
                     <button class="btn btn-ghost h-7 px-2 opacity-0 transition group-hover:opacity-100" onclick={() => openStudent(s)} aria-label="Bearbeiten"><Icon name="edit" size={14} /></button>
                   </td>
                 </tr>
@@ -175,6 +200,21 @@
       <button type="button" class="btn btn-ghost" onclick={() => (editStudent = null)}>Abbrechen</button>
       <button form="student-form" class="btn btn-primary">Speichern</button>
     {/snippet}
+  </Modal>
+
+  <Modal open={!!observeFor} title="Beobachtung starten" subtitle={observeFor ? `${observeFor.firstName} ${observeFor.lastName}` : ''} width="max-w-sm" onclose={() => (observeFor = null)}>
+    {#if observeFor}
+      {@const st = observeFor}
+      <div class="grid gap-1.5">
+        {#each coursesOf(st) as c (c.id)}
+          {@const p = openPhase(c, st.id)}
+          <button class="btn {p ? 'btn-ghost' : 'btn-soft'} justify-between" onclick={() => { observeFor = null; if (p) go(href.observation(cls.id, c.id, st.id)); else begin(st, c); }}>
+            <span>{subjectOf(c)?.name}</span>
+            <span class="text-[0.75rem] font-normal text-slate-500">{p ? 'läuft – öffnen' : 'starten'}</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
   </Modal>
 
   <Modal open={!!confirm} title="Bitte bestätigen" width="max-w-md" onclose={() => (confirm = null)}>

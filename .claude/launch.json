@@ -4,9 +4,27 @@
     {
       "name": "notenmeister",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
       "port": 4317,
       "url": "http://127.0.0.1:4317"
+    },
+    {
+      "name": "notenmeister-test",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4318",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 4318,
+      "url": "http://127.0.0.1:4318"
     }
   ]
 }

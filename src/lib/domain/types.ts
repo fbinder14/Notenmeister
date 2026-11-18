@@ -147,6 +147,8 @@ export interface Grade {
   performedAt: string;
   /** Nur bei Einzelnoten: ersetzt einen versäumten Leistungsnachweis (z. B. Rechenschaftsablage statt Ex). */
   replacesAssessmentId?: ID;
+  /** Nur bei Einzelnoten: Note entstand aus dieser Unterrichtsbeobachtung. */
+  observationId?: ID;
   /** Zeitpunkt der ersten Erfassung (automatisch, unveränderlich). */
   recordedAt: string;
   history: GradeChange[];
@@ -188,6 +190,36 @@ export interface Course {
   assessments: Assessment[];
   grades: Grade[];
   reportGrades: ReportGrade[];
+  /** Unterrichtsbeobachtungen; fehlt in älteren Datenständen. */
+  observations?: ObservationPhase[];
+}
+
+export type Stars = 1 | 2 | 3 | 4 | 5;
+
+/** Eine einzelne Beobachtung im Unterricht. */
+export interface Observation {
+  id: ID;
+  at: string; // YYYY-MM-DD
+  stars: Stars;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Beobachtungsphase für einen Unterrichtsbeitrag: Eindrücke mehrerer Stunden
+ * über einige Wochen, abgeschlossen mit einer Note.
+ */
+export interface ObservationPhase {
+  id: ID;
+  studentId: ID;
+  /** Art der Note beim Abschluss, standardmäßig Unterrichtsbeitrag. */
+  typeId: ID;
+  startedAt: string;
+  closedAt?: string;
+  /** Note, mit der die Phase abgeschlossen wurde. */
+  gradeId?: ID;
+  entries: Observation[];
 }
 
 /** Art einer pädagogischen Notiz (zum Filtern für Elterngespräche und Konferenzen). */
