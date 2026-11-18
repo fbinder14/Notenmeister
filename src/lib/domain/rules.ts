@@ -82,7 +82,7 @@ export function studentCompleteness(course: Course, studentId: string, ctx: Ctx,
   return { complete: missing.length === 0, missing };
 }
 
-function isoWeek(dateIso: string): string {
+export function isoWeek(dateIso: string): string {
   const d = new Date(`${dateIso}T12:00:00Z`);
   const day = (d.getUTCDay() + 6) % 7;
   d.setUTCDate(d.getUTCDate() - day + 3);

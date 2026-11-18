@@ -10,7 +10,8 @@
   import WarningList from '../ui/WarningList.svelte';
   import Logbook from '../ui/Logbook.svelte';
   import ObservationsPanel from '../ui/ObservationsPanel.svelte';
-  import Agenda from '../ui/dashboard/Agenda.svelte';
+  import Appointments from '../ui/dashboard/Appointments.svelte';
+  import PendingGrades from '../ui/dashboard/PendingGrades.svelte';
   import MakeupsPanel from '../ui/dashboard/MakeupsPanel.svelte';
   import AtRiskPanel from '../ui/dashboard/AtRiskPanel.svelte';
   import ReportCountdown from '../ui/dashboard/ReportCountdown.svelte';
@@ -52,7 +53,8 @@
 
     <div class="grid items-start gap-7 lg:grid-cols-[1.4fr_1fr]">
       <div class="grid gap-7">
-        <Agenda {classes} {today} />
+        <Appointments {classes} {today} />
+        <PendingGrades {classes} {today} />
         <Logbook {classes} />
         <section>
           <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Meine Unterrichte</h2>
