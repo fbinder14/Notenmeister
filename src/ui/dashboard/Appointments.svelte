@@ -4,6 +4,7 @@
   import { fmtShortDate, subjectOf, typeById } from '../../lib/state/actions';
   import type { SchoolClass } from '../../lib/domain/types';
   import Icon from '../Icon.svelte';
+  import Widget from '../Widget.svelte';
   import { SUBJECT_DOT } from '../colors';
   import AppointmentsModal from './AppointmentsModal.svelte';
 
@@ -37,11 +38,10 @@
           : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300';
 </script>
 
-<section>
-  <div class="mb-3 flex items-center gap-2">
-    <h2 class="flex-1 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Termine</h2>
+<Widget id="termine" title="Termine" badge={items.length || null}>
+  {#snippet actions()}
     <button class="btn btn-ghost h-7 px-2 text-[0.75rem]" onclick={() => show(null, true)}><Icon name="plus" size={14} /> Termin eintragen</button>
-  </div>
+  {/snippet}
   <div class="card divide-y divide-slate-100 overflow-hidden dark:divide-line-dark">
     {#each items.slice(0, SHOW) as { cls, course, assessment: a, days } (a.id)}
       {@const s = subjectOf(course)}
@@ -71,6 +71,6 @@
       </button>
     {/if}
   </div>
-</section>
+</Widget>
 
 <AppointmentsModal bind:open {classes} {today} {focus} {adding} />

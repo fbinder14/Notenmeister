@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { Reveal } from '../lib/state/reveal.svelte';
+  import { collapsed } from '../lib/state/collapsed.svelte';
+  import Widget from './Widget.svelte';
   import Locked from './Locked.svelte';
   import RevealTimer from './RevealTimer.svelte';
 
@@ -10,6 +12,7 @@
    * gar nicht, sodass keine Namen im Dokument stehen.
    */
   let {
+    id,
     title,
     count,
     lockedTitle,
@@ -17,6 +20,8 @@
     empty,
     children,
   }: {
+    /** Kennung zum Speichern des Ein-/Ausklappzustands. */
+    id: string;
     title: string;
     count: number;
     lockedTitle: string;
@@ -27,13 +32,14 @@
 
   const reveal = new Reveal(60);
   $effect(() => reveal.attach());
+  // Beim Einklappen sofort wieder verdecken.
+  $effect(() => {
+    if (collapsed.has(id)) reveal.hide();
+  });
 </script>
 
-<div>
-  <div class="mb-3 flex items-center gap-2">
-    <h2 class="flex-1 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">{title}</h2>
-    <RevealTimer {reveal} />
-  </div>
+<Widget {id} {title} badge={count || null}>
+  {#snippet actions()}<RevealTimer {reveal} />{/snippet}
   <div class="card relative overflow-hidden">
     {#if !count}
       <p class="px-4 py-5 text-[0.8125rem] text-slate-500">{empty}</p>
@@ -48,4 +54,4 @@
       <div class="animate-fade-up">{@render children()}</div>
     {/if}
   </div>
-</div>
+</Widget>

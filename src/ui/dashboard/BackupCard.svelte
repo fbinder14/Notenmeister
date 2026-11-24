@@ -4,6 +4,7 @@
   import { href } from '../../lib/state/router.svelte';
   import { toast } from '../../lib/state/toast.svelte';
   import Icon from '../Icon.svelte';
+  import Widget from '../Widget.svelte';
 
   /**
    * Stand der Datensicherung. Ist ein Sicherungsordner eingerichtet, schreibt
@@ -42,8 +43,7 @@
   }
 </script>
 
-<section>
-  <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Datensicherung</h2>
+<Widget id="datensicherung" title="Datensicherung" badge={warn ? '!' : null}>
   <div
     class="card flex items-center gap-3 p-4 {warn ? 'border-amber-200 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-500/[0.06]' : ''}"
   >
@@ -68,4 +68,4 @@
       <Icon name={folder ? 'folder' : 'download'} size={14} /> Jetzt sichern
     </button>
   </div>
-</section>
+</Widget>

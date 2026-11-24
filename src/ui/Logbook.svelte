@@ -9,6 +9,8 @@
   import Locked from './Locked.svelte';
   import RevealTimer from './RevealTimer.svelte';
   import { Reveal } from '../lib/state/reveal.svelte';
+  import { collapsed } from '../lib/state/collapsed.svelte';
+  import Widget from './Widget.svelte';
 
   /**
    * „Letzte Aktionen“ (Variante A): Der Inhalt ist zunächst verdeckt und wird erst
@@ -27,6 +29,10 @@
     confirmClear = false;
   });
   $effect(() => reveal.attach());
+  // Beim Einklappen sofort wieder verdecken.
+  $effect(() => {
+    if (collapsed.has('aktionen')) reveal.hide();
+  });
 
   const items = $derived(recentLog(classes));
   const shown = $derived(items.slice(0, more ? 40 : PAGE));
@@ -134,11 +140,8 @@
   });
 </script>
 
-<div>
-  <div class="mb-3 flex items-center gap-2">
-    <h2 class="flex-1 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Letzte Aktionen</h2>
-    <RevealTimer {reveal} />
-  </div>
+<Widget id="aktionen" title="Letzte Aktionen" badge={sinceYesterday || null}>
+  {#snippet actions()}<RevealTimer {reveal} />{/snippet}
 
   <div class="card relative overflow-hidden">
     {#if !items.length}
@@ -205,4 +208,4 @@
       </div>
     {/if}
   </div>
-</div>
+</Widget>

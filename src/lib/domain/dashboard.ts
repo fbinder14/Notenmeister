@@ -1,6 +1,6 @@
-import { entriesFor, halfOf, needsReplacement, summarize, type Ctx } from './grading';
-import { activeStudents, minSmallPerHalf, studentCompleteness } from './rules';
-import type { Assessment, Course, Grade, Half, ReportTerm, SchoolClass, SchoolYear, Student } from './types';
+import { counts, entriesFor, halfOf, needsReplacement, replacementFor, summarize, typeOf, type Ctx } from './grading';
+import { activeStudents, minSmallPerHalf, needsOral, studentCompleteness } from './rules';
+import type { Assessment, Category, Course, Grade, Half, ReportTerm, SchoolClass, SchoolYear, Student } from './types';
 
 /** Auswertungen für die Startseite. Alle Datumsangaben als YYYY-MM-DD. */
 
@@ -236,6 +236,128 @@ export function reportStatus(classes: SchoolClass[], ctx: Ctx, today: string): R
   }
   courses.sort((a, b) => a.complete / a.total - b.complete / b.total);
   return { term, date, daysLeft: daysBetween(today, date), courses };
+}
+
+// ---------- Fehlende Noten bis zum Zeugnis ----------
+
+/** Notenplätze einer Kategorie (je Schülerin/Schüler und Leistungsnachweis gezählt). */
+export interface GradeSlots {
+  /** Zählende Noten. */
+  erfasst: number;
+  /** Leistungsnachweis liegt zurück, aber für die Person ist nichts eingetragen. */
+  offen: number;
+  /** Nachtermin offen oder Ersatznote für einen versäumten Nachweis fehlt. */
+  nachtermin: number;
+  /** Angesetzt, aber noch nicht geschrieben, oder bis zur Mindestzahl noch zu erheben. */
+  ausstehend: number;
+}
+
+export const missingOf = (s: GradeSlots) => s.offen + s.nachtermin + s.ausstehend;
+
+export interface CourseMissing {
+  cls: SchoolClass;
+  course: Course;
+  gross: GradeSlots;
+  klein: GradeSlots;
+  /** Schülerinnen und Schüler mit allen nötigen Noten. */
+  complete: number;
+  total: number;
+}
+
+export interface MissingGrades {
+  term: ReportTerm;
+  date: string;
+  daysLeft: number;
+  gross: GradeSlots;
+  klein: GradeSlots;
+  courses: CourseMissing[];
+}
+
+const emptySlots = (): GradeSlots => ({ erfasst: 0, offen: 0, nachtermin: 0, ausstehend: 0 });
+
+function addSlots(into: GradeSlots, from: GradeSlots) {
+  into.erfasst += from.erfasst;
+  into.offen += from.offen;
+  into.nachtermin += from.nachtermin;
+  into.ausstehend += from.ausstehend;
+}
+
+/**
+ * Überblick über die bis zum nächsten Zeugnis fehlenden Noten, getrennt nach
+ * großen und kleinen Leistungsnachweisen. Gezählt werden Notenplätze, keine
+ * Personen; Namen tauchen im Ergebnis nicht auf.
+ */
+export function missingGrades(classes: SchoolClass[], ctx: Ctx, today: string): MissingGrades | null {
+  const year = ctx.year;
+  if (today > year.end) return null;
+  const term: ReportTerm = today < year.halfSwitch ? 'zwischen' : 'jahr';
+  const date = term === 'zwischen' ? year.halfSwitch : year.end;
+  const halves: Half[] = term === 'zwischen' ? [1] : [1, 2];
+  const catOf = (typeId: string | undefined): Category => ctx.types.get(typeId ?? '')?.category ?? 'klein';
+  const gross = emptySlots();
+  const klein = emptySlots();
+  const courses: CourseMissing[] = [];
+
+  for (const cls of classes) {
+    for (const course of cls.courses) {
+      const students = activeStudents(cls, course);
+      if (!students.length) continue;
+      const c: CourseMissing = { cls, course, gross: emptySlots(), klein: emptySlots(), complete: 0, total: students.length };
+      const slots = (cat: Category) => (cat === 'gross' ? c.gross : c.klein);
+      const minSmall = minSmallPerHalf(course);
+      const oral = needsOral(course);
+      const inTerm = course.assessments.filter((a) => halves.includes(halfOf(a.date, year)));
+
+      for (const s of students) {
+        if (studentCompleteness(course, s.id, ctx, term === 'zwischen' ? 1 : 'jahr').complete) c.complete++;
+        for (const h of halves) {
+          const entries = entriesFor(course, s.id, ctx, h);
+          for (const e of entries) slots(e.category).erfasst++;
+          let smallOpen = 0;
+          for (const a of inTerm) {
+            if (halfOf(a.date, year) !== h) continue;
+            const cat = catOf(a.typeId);
+            const g = course.grades.find((x) => x.assessmentId === a.id && x.studentId === s.id);
+            let kind: keyof GradeSlots | null = null;
+            if (g?.status === 'nachtermin' || (needsReplacement(g) && !replacementFor(course, a.id, s.id))) kind = 'nachtermin';
+            else if (!g || (g.status !== 'nicht_gewertet' && !counts(g))) kind = a.date > today ? 'ausstehend' : 'offen';
+            if (!kind) continue;
+            slots(cat)[kind]++;
+            if (cat === 'klein') smallOpen++;
+          }
+          // Einzelnoten mit offenem Nachtermin (ohne angelegten Leistungsnachweis).
+          for (const g of course.grades) {
+            if (g.assessmentId || g.studentId !== s.id || g.status !== 'nachtermin') continue;
+            if (halfOf(g.performedAt.slice(0, 10), year) !== h) continue;
+            const cat = typeOf(g, undefined, ctx)?.category ?? 'klein';
+            slots(cat).nachtermin++;
+            if (cat === 'klein') smallOpen++;
+          }
+          // Bis zur Mindestzahl kleiner Leistungsnachweise (RSO § 19 Abs. 6) noch zu erheben.
+          const small = entries.filter((e) => e.category === 'klein');
+          let toDo = Math.max(0, minSmall - small.length - smallOpen);
+          if (oral && !toDo && !smallOpen && !small.some((e) => e.mode === 'muendlich')) toDo = 1;
+          c.klein.ausstehend += toDo;
+        }
+      }
+
+      // Geplante, aber noch nicht angelegte Schulaufgaben bzw. Tests (nur fürs Jahreszeugnis).
+      if (term === 'jahr') {
+        const kind = (typeId: string) => ctx.types.get(typeId)?.kind;
+        const planned = course.testModel ? 5 : course.plannedSchulaufgaben;
+        const have = course.assessments.filter((a) =>
+          course.testModel ? kind(a.typeId) === 'angesagter_test' : kind(a.typeId) === 'schulaufgabe' || kind(a.typeId) === 'ersatz_schulaufgabe',
+        ).length;
+        c.gross.ausstehend += Math.max(0, planned - have) * students.length;
+      }
+
+      addSlots(gross, c.gross);
+      addSlots(klein, c.klein);
+      courses.push(c);
+    }
+  }
+  courses.sort((a, b) => missingOf(b.gross) + missingOf(b.klein) - (missingOf(a.gross) + missingOf(a.klein)));
+  return { term, date, daysLeft: daysBetween(today, date), gross, klein, courses };
 }
 
 // ---------- Datensicherung ----------

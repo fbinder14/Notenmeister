@@ -41,6 +41,7 @@
 </script>
 
 <ProtectedPanel
+  id="beobachtungen"
   title="Laufende Beobachtungen"
   count={running.length}
   lockedTitle="{running.length} laufende Beobachtung{running.length === 1 ? '' : 'en'}"

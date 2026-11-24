@@ -18,6 +18,7 @@
   import QuickActions from '../ui/dashboard/QuickActions.svelte';
   import BackupCard from '../ui/dashboard/BackupCard.svelte';
   import YearBar from '../ui/dashboard/YearBar.svelte';
+  import Widget from '../ui/Widget.svelte';
   import { SUBJECT_GRADIENT } from '../ui/colors';
 
   let { onnewclass }: { onnewclass: () => void } = $props();
@@ -56,8 +57,7 @@
         <Appointments {classes} {today} />
         <PendingGrades {classes} {today} />
         <Logbook {classes} />
-        <section>
-          <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Meine Unterrichte</h2>
+        <Widget id="unterrichte" title="Meine Unterrichte" badge={recent.length || null}>
           <div class="grid gap-3 sm:grid-cols-2">
             {#each recent as { cls, course, last } (course.id)}
               {@const s = subjectOf(course)}
@@ -82,7 +82,7 @@
               <p class="text-[0.8125rem] text-slate-500">Noch keine Fächer. Öffne eine Klasse und füge ein Fach hinzu.</p>
             {/each}
           </div>
-        </section>
+        </Widget>
       </div>
 
       <div class="grid gap-7">
@@ -91,10 +91,9 @@
         <MakeupsPanel {classes} {today} />
         {#if ctx}<AtRiskPanel {classes} {ctx} {today} />{/if}
         <BackupCard />
-        <section>
-          <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Hinweise nach RSO</h2>
+        <Widget id="hinweise" title="Hinweise nach RSO" badge={warnings.length || null}>
           <WarningList {warnings} />
-        </section>
+        </Widget>
       </div>
     </div>
   {/if}
