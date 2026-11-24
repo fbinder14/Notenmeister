@@ -2,116 +2,263 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Notenmeister – Anleitung</title>
+<title>Notenmeister – Handbuch</title>
 <style>
-  @page { size: A4; margin: 14mm 18mm 13mm 18mm; }
+  :root { --grau: #525252; --gruen: #2E7D52; --hell: #f4f6f5; --linie: #cfd6d2; }
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
+    @top-left { content: "Notenmeister · Handbuch für Referendarinnen und Referendare"; font: 8.5pt Arial, sans-serif; color: #888; vertical-align: bottom; padding-bottom: 3mm; }
+    @top-right { content: "Staatliche Realschule Bobingen"; font: 8.5pt Arial, sans-serif; color: #888; vertical-align: bottom; padding-bottom: 3mm; }
+    @bottom-center { content: counter(page); font: bold 9pt Arial, sans-serif; color: var(--gruen); }
+  }
+  @page titel { @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } }
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.25; color: #1a1a1a; margin: 0; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.6pt solid #999; padding-bottom: 5pt; margin-bottom: 9pt; }
-  header img { width: 40mm; }
-  h1 { font-size: 16pt; margin: 0; }
-  .sub { font-size: 10pt; color: #555; margin-top: 2pt; }
-  h2 { font-size: 12pt; margin: 8pt 0 3pt; padding-bottom: 1pt; border-bottom: 0.4pt solid #ccc; }
-  p { margin: 0 0 4pt; }
-  ol, ul { margin: 0 0 4pt; padding-left: 16pt; }
-  li { margin-bottom: 1pt; }
-  code { font-family: Menlo, Consolas, monospace; font-size: 10pt; background: #f1f1f1; padding: 0 2pt; }
-  .box { border: 0.5pt solid #bbb; background: #f7f7f7; padding: 5pt 7pt; margin: 6pt 0; }
-  table { border-collapse: collapse; width: 100%; margin: 3pt 0 5pt; font-size: 11pt; }
-  td, th { border: 0.4pt solid #bbb; padding: 2pt 5pt; text-align: left; vertical-align: top; }
-  th { background: #f1f1f1; }
-  .page2 { break-before: page; }
-  footer { font-size: 9pt; color: #777; margin-top: 8pt; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.3; color: #222; margin: 0; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 17pt; }
+  li { margin-bottom: 2pt; }
+  b, strong { color: #111; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 9.5pt; background: var(--hell); border: 0.4pt solid var(--linie); border-radius: 2pt; padding: 0 2pt; }
+
+  /* Titelseite */
+  .titel { page: titel; height: 255mm; display: flex; flex-direction: column; break-after: page; }
+  .titel img { width: 70mm; align-self: flex-end; }
+  .titel .band { margin-top: 55mm; border-left: 5pt solid var(--gruen); padding-left: 12pt; }
+  .titel .reihe { font-size: 11pt; letter-spacing: 2pt; text-transform: uppercase; color: var(--gruen); font-weight: bold; }
+  .titel h1 { font-size: 30pt; line-height: 1.1; color: var(--grau); margin: 6pt 0 10pt; }
+  .titel .unter { font-size: 14pt; color: var(--grau); }
+  .titel .inhalt { margin-top: auto; border-top: 0.6pt solid var(--linie); padding-top: 10pt; font-size: 11pt; }
+  .titel .inhalt h3 { font-size: 10pt; text-transform: uppercase; letter-spacing: 1.5pt; color: var(--gruen); margin: 0 0 5pt; }
+  .toc { list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 12mm; }
+  .toc li { margin-bottom: 3pt; }
+  .toc span { display: inline-block; width: 16pt; color: var(--gruen); font-weight: bold; }
+
+  /* Kapitel */
+  .kapitel { break-before: page; }
+  .kapitel:first-of-type { break-before: auto; }
+  .kopf { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12pt; }
+  .kopf .nr { font-size: 10pt; font-weight: bold; letter-spacing: 2pt; text-transform: uppercase; color: var(--gruen); }
+  .kopf h2 { font-size: 21pt; line-height: 1.15; color: var(--grau); margin: 2pt 0 0; }
+  .kopf img { width: 34mm; margin-top: 2pt; }
+  .kopf + .lead { font-size: 12.5pt; color: var(--grau); border-bottom: 0.6pt solid var(--linie); padding-bottom: 8pt; margin-bottom: 10pt; }
+  h3 { font-size: 13pt; color: var(--grau); margin: 12pt 0 4pt; break-after: avoid; }
+  h3 .num { color: var(--gruen); margin-right: 4pt; }
+
+  /* Prompt-Kästen im Listing-Stil */
+  .prompt { break-inside: avoid; margin: 6pt 0 7pt; border: 0.6pt solid var(--linie); border-radius: 3pt; overflow: hidden; }
+  .prompt .label { background: var(--grau); color: #fff; font-size: 9pt; font-weight: bold; padding: 3pt 8pt; display: flex; justify-content: space-between; letter-spacing: 0.3pt; }
+  .prompt .label .wo { font-weight: normal; opacity: 0.85; }
+  .prompt .text { background: var(--hell); padding: 5pt 9pt; font-family: Menlo, Consolas, monospace; font-size: 9.5pt; line-height: 1.38; white-space: pre-wrap; border-left: 3pt solid var(--gruen); }
+
+  /* Randnotizen */
+  .note { break-inside: avoid; margin: 7pt 0 9pt; padding: 5pt 9pt; border-left: 3pt solid var(--gruen); background: #eef5f1; font-size: 11pt; }
+  .note.achtung { border-left-color: var(--grau); background: #f0f0f0; }
+  .note .t { display: block; font-size: 9pt; font-weight: bold; letter-spacing: 1.5pt; text-transform: uppercase; color: var(--gruen); margin-bottom: 1pt; }
+  .note.achtung .t { color: var(--grau); }
+
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 9pt; font-size: 10.5pt; break-inside: avoid; }
+  th { background: var(--grau); color: #fff; text-align: left; padding: 3pt 6pt; font-weight: bold; }
+  td { border-bottom: 0.5pt solid var(--linie); padding: 3pt 6pt; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfa; }
+  .check li { list-style: none; position: relative; }
+  .check li::before { content: "☐"; position: absolute; left: -15pt; color: var(--gruen); }
 </style>
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>Notenmeister – Anleitung für Referendarinnen und Referendare</h1>
-    <div class="sub">Lokale, verschlüsselte Notenverwaltung nach RSO · Staatliche Realschule Bobingen</div>
-  </div>
+<!-- ========================= Titelseite ========================= -->
+<section class="titel">
   <img src="schullogo.png" alt="Logo der Staatlichen Realschule Bobingen">
-</header>
-
-<h2>Was ist der Notenmeister?</h2>
-<p>Eine Web-App für Chrome, in der Sie Klassen, Leistungsnachweise und Noten führen. Alle Daten bleiben verschlüsselt auf Ihrem eigenen Rechner; die App baut keine Internetverbindung auf. Die Notenlogik folgt der RSO (ab 01.08.2026) inkl. Gewichtung, Jahresfortgangsnote und Hinweisen, z.&nbsp;B. auf fehlende kleine Nachweise.</p>
-
-<h2>1. Installation (einmalig, ca. 10 Minuten)</h2>
-<ol>
-  <li><b>Node.js</b> (LTS-Version) von <code>nodejs.org</code> installieren.</li>
-  <li>Quellcode holen: auf <code>github.com/fbinder14/Notenmeister</code> unter <i>Code → Download ZIP</i> herunterladen und entpacken – oder mit Git: <code>git clone https://github.com/fbinder14/Notenmeister.git</code></li>
-  <li>Im Terminal in den Ordner wechseln und starten: <code>npm install</code>, danach <code>npm start</code></li>
-  <li>In Chrome <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. Danach startet die App auch ohne Terminal.</li>
-</ol>
-<p><b>Wichtig:</b> Die Adresse samt Port 4317 nicht ändern – Chrome speichert die Daten genau unter dieser Adresse.</p>
-
-<h2>2. Erste Schritte</h2>
-<ol>
-  <li><b>Master-Passwort</b> festlegen. Es gibt keine Wiederherstellung: Passwort vergessen = Daten weg.</li>
-  <li><b>Einstellungen → Schuljahre:</b> Schuljahr prüfen (Halbjahreswechsel, Ende).</li>
-  <li><b>Klasse anlegen</b> und Namensliste einfügen (aus Excel kopieren oder CSV/XLSX importieren).</li>
-  <li>In der Klasse einen <b>Unterricht</b> (Fach) hinzufügen. Wochenstunden und Anzahl der Schulaufgaben werden nach Stundentafel vorgeschlagen.</li>
-  <li><b>Leistungsnachweis</b> anlegen (Art, Datum, ggf. Höchstpunktzahl und Notenschlüssel), dann Noten per Sammeleingabe erfassen.</li>
-  <li><b>Einzelnoten</b> (z.&nbsp;B. Rechenschaftsablage, Unterrichtsbeitrag) über die Schnellerfassung eintragen; für Unterrichtsbeiträge können Sie über mehrere Stunden <b>Beobachtungen</b> sammeln und mit einer Note abschließen.</li>
-  <li>Am Halbjahresende unter <b>Zeugnis</b> die Noten setzen. Die App macht nur einen Vorschlag – die Entscheidung liegt bei Ihnen.</li>
-</ol>
-
-<h2>3. Datenschutz und Sicherung</h2>
-<ul>
-  <li><b>Sicherung regelmäßig exportieren</b> (Einstellungen → Daten und Sicherheit, Datei <code>*.notenmeister</code>, verschlüsselt). Ideal: automatische Sicherung in einen Ordner aktivieren.</li>
-  <li>Die App sperrt sich nach einiger Zeit ohne Eingabe; manuell mit <b>⌘L</b> bzw. <b>Strg+L</b>.</li>
-  <li><b>Ausdrucke und PDFs sind nicht verschlüsselt.</b> Die Datenschutzvorgaben der Schule gelten weiterhin.</li>
-</ul>
-
-<!-- ===================== Seite 2 ===================== -->
-<div class="page2">
-
-<header>
-  <div>
-    <h1>Den Notenmeister an das eigene Fach anpassen</h1>
-    <div class="sub">Beispiel: Sport</div>
+  <div class="band">
+    <div class="reihe">Handbuch für Referendarinnen und Referendare</div>
+    <h1>Notenmeister<br>mit KI einrichten und anpassen</h1>
+    <div class="unter">Installation, erste Schritte und Anpassung an das eigene Fach – mit erprobten Prompts für ChatGPT und Claude</div>
   </div>
-  <img src="schullogo.png" alt="Logo der Staatlichen Realschule Bobingen">
-</header>
+  <div class="inhalt">
+    <h3>Inhalt</h3>
+    <ol class="toc">
+      <li><span>1</span>Der Notenmeister im Überblick</li>
+      <li><span>2</span>Mit KI arbeiten: Werkzeuge und Regeln</li>
+      <li><span>3</span>Installation mit KI-Unterstützung</li>
+      <li><span>4</span>Erste Schritte in der App</li>
+      <li><span>5</span>Anpassen an das eigene Fach (Beispiel Sport)</li>
+      <li><span>A</span>Spickzettel: Befehle und Dateien</li>
+    </ol>
+  </div>
+</section>
 
-<h2>Stufe 1: Ohne Programmieren – direkt in der App</h2>
-<p>Vieles lässt sich unter <b>Einstellungen → Unterricht</b> einstellen. Für Sport zum Beispiel:</p>
-<ul>
-  <li>Fach <b>Sport</b> beim Hinzufügen des Unterrichts wählen; Schulaufgaben auf <b>0</b> setzen.</li>
-  <li>Unter <i>Arten von Leistungsnachweisen</i> über <b>Eigene Art</b> fachtypische Nachweise anlegen, z.&nbsp;B. „Leichtathletik“, „Geräteturnen“, „Ballspiel“ – Form <i>praktisch</i>, Kategorie <i>klein</i>, Gewicht nach Absprache mit der Fachschaft.</li>
-  <li>Unter <b>Notenschlüssel</b> eigene Prozentgrenzen anlegen, wenn Sie mit Punkten arbeiten.</li>
-</ul>
+<!-- ========================= Kapitel 1 + 2 ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Kapitel 1</div><h2>Der Notenmeister im Überblick</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+  <p class="lead">Eine Web-App für Chrome, in der Sie Klassen, Leistungsnachweise und Noten führen – verschlüsselt, ohne Internetverbindung, mit Notenlogik nach RSO (Fassung ab 01.08.2026).</p>
+  <ul>
+    <li><b>Lokal und verschlüsselt:</b> Alle Daten bleiben auf Ihrem Rechner, geschützt durch ein Master-Passwort.</li>
+    <li><b>RSO-Logik:</b> Gewichtung großer und kleiner Nachweise, Jahresfortgangsnote, Hinweise z.&nbsp;B. auf fehlende kleine Nachweise oder zu viele Nachweise pro Woche.</li>
+    <li><b>Offen:</b> Der Quellcode liegt öffentlich auf GitHub (<code>github.com/fbinder14/Notenmeister</code>) und darf an das eigene Fach angepasst werden.</li>
+  </ul>
 
-<h2>Stufe 2: Den Quellcode verändern</h2>
-<p>Der Notenmeister ist Open Source. Wer mehr möchte (z.&nbsp;B. Leistungstabellen „Weite/Zeit → Note“), arbeitet mit einer eigenen Kopie:</p>
-<ol>
-  <li>Auf GitHub ein eigenes Konto anlegen und das Repository <b>forken</b> (Schaltfläche <i>Fork</i>). So bleibt das Original unverändert.</li>
-  <li>Die eigene Kopie klonen, <code>npm install</code> ausführen und mit <code>npm run dev</code> starten. Änderungen erscheinen sofort im Browser.</li>
-  <li>Ändern, dann prüfen: <code>npm test</code> (Tests) und <code>npm run check</code> (Typprüfung). Zum Schluss wie gewohnt <code>npm start</code>.</li>
-</ol>
+  <div class="kopf" style="margin-top:18pt">
+    <div><div class="nr">Kapitel 2</div><h2>Mit KI arbeiten: Werkzeuge und Regeln</h2></div>
+  </div>
+  <p>ChatGPT und Claude gibt es in zwei Arbeitsweisen. Für dieses Handbuch brauchen Sie beide.</p>
+  <table>
+    <tr><th style="width:30%">Arbeitsweise</th><th style="width:33%">Beispiele</th><th>Wofür?</th></tr>
+    <tr><td><b>Chat</b><br>KI erklärt, Sie führen aus</td><td>ChatGPT, Claude (normales Chatfenster)</td><td>Installation Schritt für Schritt, Fehlermeldungen deuten, Fragen zur App</td></tr>
+    <tr><td><b>Coding-Agent</b><br>KI arbeitet im Projektordner</td><td>Claude Code (Claude-App, Bereich „Code“), ChatGPT Codex</td><td>Code lesen, ändern, testen – also das Anpassen ans eigene Fach</td></tr>
+  </table>
 
-<table>
-  <tr><th style="width:42%">Datei</th><th>Was steht dort? (Ideen für Sport)</th></tr>
-  <tr><td><code>src/lib/domain/defaults.ts</code></td><td>Vorbelegte Arten von Leistungsnachweisen, Notenschlüssel, Fachliste, Schulaufgaben-Anzahl und Stundentafel – z.&nbsp;B. Sport-Arten fest einbauen.</td></tr>
-  <tr><td><code>src/lib/domain/rules.ts</code></td><td>Hinweise nach RSO (z.&nbsp;B. „fehlende mündliche Note“) – fachbezogen anpassen.</td></tr>
-  <tr><td><code>src/lib/domain/grading.ts</code></td><td>Berechnung der Durchschnitte und Jahresfortgangsnote.</td></tr>
-  <tr><td><code>src/lib/domain/gradeKey.ts</code></td><td>Punkte → Note; Vorlage für eigene Leistungstabellen.</td></tr>
-  <tr><td><code>src/views/</code>, <code>src/dialogs/</code></td><td>Die Seiten und Dialoge der Oberfläche (Svelte).</td></tr>
-  <tr><td><code>tests/</code></td><td>Automatische Tests – für eigene Regeln am besten einen Test ergänzen.</td></tr>
-</table>
+  <h3><span class="num">2.1</span>Fünf Grundregeln</h3>
+  <ol>
+    <li><b>Keine Schülerdaten an die KI.</b> Niemals Namen, Noten, Ausdrucke, Sicherungsdateien (<code>*.notenmeister</code>) oder Ihr Master-Passwort in einen Chat geben. Für Beispiele immer erfundene Namen verwenden.</li>
+    <li><b>Kontext geben.</b> Nennen Sie Betriebssystem, Ziel und was Sie schon versucht haben.</li>
+    <li><b>Fehlermeldungen vollständig einfügen</b> – nicht abtippen, nicht zusammenfassen.</li>
+    <li><b>Erst planen, dann ändern.</b> Lassen Sie sich vor jeder Code-Änderung einen Plan zeigen und geben Sie ihn frei.</li>
+    <li><b>Verstehen, was ausgeführt wird.</b> Fragen Sie nach, wenn ein Befehl unklar ist – besonders bei allem, was löscht oder mit <code>sudo</code> beginnt.</li>
+  </ol>
+  <div class="note"><span class="t">Tipp</span>Beginnen Sie jedes neue Vorhaben in einem neuen Chat. Lange Verläufe verwirren die KI; ein frischer Chat mit klarem Ziel liefert bessere Antworten.</div>
+</section>
 
-<div class="box">
-<b>Tipp: KI-Assistent nutzen.</b> Sie müssen nicht selbst programmieren können. Öffnen Sie den Ordner in einem KI-Coding-Werkzeug (z.&nbsp;B. Claude Code) und beschreiben Sie Ihren Wunsch in Alltagssprache, etwa: <i>„Lege für Sport die Leistungsnachweisarten Leichtathletik, Turnen und Ballspiel an (praktisch, klein, Gewicht 1) und unterdrücke den Hinweis auf fehlende mündliche Noten im Fach Sport. Ergänze passende Tests.“</i> Lassen Sie sich die Änderungen erklären und prüfen Sie sie mit <code>npm test</code>.
-</div>
+<!-- ========================= Kapitel 3 ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Kapitel 3</div><h2>Installation mit KI-Unterstützung</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+  <p class="lead">Einmalig, ca. 15 Minuten. Sie brauchen Chrome, Node.js (LTS-Version) und den Quellcode.</p>
 
-<h2>Wichtig vor dem Experimentieren</h2>
-<ul>
-  <li><b>Vorher eine Sicherung exportieren.</b> Entwicklungs- und Normalbetrieb nutzen dieselbe Adresse und damit dieselben Daten.</li>
-  <li>Änderungen an Vorbelegungen gelten nur für <b>neu eingerichtete</b> Datenbestände; Bestehendes passen Sie in den Einstellungen an.</li>
-  <li>Keine echten Schülerdaten in Tests, Screenshots oder auf GitHub. Fragen und Ideen gern an Franz Binder.</li>
-</ul>
+  <h3><span class="num">3.1</span>Der Weg in Kürze</h3>
+  <ol>
+    <li>Node.js (LTS) von <code>nodejs.org</code> installieren.</li>
+    <li>Quellcode holen: auf GitHub <i>Code → Download ZIP</i> und entpacken – oder <code>git clone https://github.com/fbinder14/Notenmeister.git</code></li>
+    <li>Im Terminal (Windows: PowerShell) in den Ordner wechseln: <code>npm install</code>, dann <code>npm start</code></li>
+    <li>In Chrome <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. Danach startet sie auch ohne Terminal. <b>Die Adresse nie ändern</b> – Chrome speichert die Daten genau dort.</li>
+  </ol>
 
-</div>
+  <h3><span class="num">3.2</span>Variante A: Der Chat führt Sie durch</h3>
+  <div class="prompt"><div class="label">Prompt 3.1 · Installation anleiten <span class="wo">ChatGPT / Claude – Chat</span></div><div class="text">Ich bin Lehrkraft und keine Programmiererin/kein Programmierer. Ich möchte die Web-App „Notenmeister“ von https://github.com/fbinder14/Notenmeister auf meinem [Mac / Windows-Laptop] installieren.
+Führe mich Schritt für Schritt durch. Gib mir immer nur EINEN Schritt, erkläre kurz, was er bewirkt, und warte auf meine Rückmeldung, bevor du weitermachst.</div></div>
+
+  <div class="prompt"><div class="label">Prompt 3.2 · Fehlermeldung deuten <span class="wo">Chat</span></div><div class="text">Beim Installieren des Notenmeisters habe ich den Befehl [Befehl] ausgeführt und folgende Meldung bekommen:
+[komplette Fehlermeldung hier einfügen]
+Was bedeutet das, und was genau soll ich als Nächstes tun? Betriebssystem: [Mac / Windows].</div></div>
+
+  <h3><span class="num">3.3</span>Variante B: Der Coding-Agent erledigt es</h3>
+  <p>Mit Claude Code oder Codex wählen Sie einen leeren Ordner (z.&nbsp;B. „Notenmeister“ in Dokumente) als Arbeitsordner und geben dann ein:</p>
+  <div class="prompt"><div class="label">Prompt 3.3 · Installieren und starten <span class="wo">Claude Code / Codex</span></div><div class="text">Klone https://github.com/fbinder14/Notenmeister in diesen Ordner, lies die README und richte die App so ein, wie sie dort beschrieben ist. Prüfe zuerst, ob Node.js installiert ist; falls nicht, sag mir, wie ich es installiere, statt es selbst zu tun.
+Ändere keinen Code und nicht den Port 4317. Starte am Ende die App und sag mir, welche Adresse ich in Chrome öffnen soll.</div></div>
+
+</section>
+
+<!-- ========================= Kapitel 4 ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Kapitel 4</div><h2>Erste Schritte in der App</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+  <p class="lead">Vom Master-Passwort bis zur Zeugnisnote – in sieben Schritten.</p>
+  <ol>
+    <li><b>Master-Passwort</b> festlegen. Es gibt keine Wiederherstellung: Passwort vergessen bedeutet Daten verloren.</li>
+    <li><b>Einstellungen → Schuljahre:</b> Beginn, Halbjahreswechsel und Ende prüfen.</li>
+    <li><b>Klasse anlegen</b> und Namensliste einfügen (aus Excel kopieren oder CSV/XLSX importieren).</li>
+    <li>In der Klasse einen <b>Unterricht</b> hinzufügen. Wochenstunden und Zahl der Schulaufgaben werden nach Stundentafel vorgeschlagen.</li>
+    <li><b>Leistungsnachweis</b> anlegen (Art, Datum, ggf. Höchstpunktzahl und Notenschlüssel) und Noten per Sammeleingabe erfassen.</li>
+    <li><b>Einzelnoten</b> wie Rechenschaftsablage oder Unterrichtsbeitrag über die Schnellerfassung eintragen; für Unterrichtsbeiträge lassen sich über mehrere Stunden <b>Beobachtungen</b> sammeln.</li>
+    <li>Am Halbjahresende unter <b>Zeugnis</b> die Noten setzen. Die App macht nur einen Vorschlag – die Entscheidung liegt bei Ihnen.</li>
+  </ol>
+
+  <h3><span class="num">4.1</span>Sicherung und Datenschutz</h3>
+  <ul>
+    <li><b>Sicherung regelmäßig exportieren</b> (Einstellungen → Daten und Sicherheit). Am besten die automatische Sicherung in einen Ordner aktivieren.</li>
+    <li>Die App sperrt sich nach einiger Zeit ohne Eingabe; manuell mit <b>⌘L</b> bzw. <b>Strg+L</b>.</li>
+    <li><b>Ausdrucke und PDFs sind nicht verschlüsselt.</b> Die Datenschutzvorgaben der Schule gelten weiterhin.</li>
+  </ul>
+
+  <h3><span class="num">4.2</span>Die KI als Lernbegleiter</h3>
+  <div class="prompt"><div class="label">Prompt 4.1 · Bedienung erklären lassen <span class="wo">Chat</span></div><div class="text">Ich nutze die Notenverwaltung „Notenmeister“ (Realschule Bayern, RSO ab 01.08.2026). In der App gibt es Leistungsnachweise der Kategorien „groß“ (Gewicht 2) und „klein“ (Gewicht 1).
+Erkläre mir an einem erfundenen Beispiel mit drei Schülern, wie daraus eine Jahresfortgangsnote als gewichteter Durchschnitt entsteht.</div></div>
+  <div class="note achtung"><span class="t">Achtung</span>KI-Antworten zu Rechtsfragen (RSO, BayEUG) können veraltet oder falsch sein. Verbindlich ist immer der Originaltext der Schulordnung – im Zweifel Seminarlehrkraft oder Schulleitung fragen.</div>
+</section>
+
+<!-- ========================= Kapitel 5 ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Kapitel 5</div><h2>Anpassen an das eigene Fach</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+  <p class="lead">Am Beispiel Sport: erst die Einstellungen nutzen, dann den Code erweitern.</p>
+
+  <h3><span class="num">5.1</span>Stufe 1: Ohne Programmieren</h3>
+  <ul>
+    <li>Fach <b>Sport</b> wählen, Schulaufgaben auf <b>0</b> setzen; unter <b>Notenschlüssel</b> eigene Prozentgrenzen anlegen.</li>
+    <li><b>Einstellungen → Unterricht → Eigene Art:</b> z.&nbsp;B. „Leichtathletik“, „Geräteturnen“, „Ballspiel“ anlegen (Form <i>praktisch</i>, Kategorie <i>klein</i>, Gewicht nach Absprache mit der Fachschaft).</li>
+  </ul>
+
+  <h3><span class="num">5.2</span>Stufe 2: Eigene Kopie des Codes</h3>
+  <ol>
+    <li>GitHub-Konto anlegen und das Repository <b>forken</b> (Schaltfläche <i>Fork</i>). Das Original bleibt unverändert.</li>
+    <li>Die eigene Kopie wie in Prompt 3.3 klonen lassen, mit Ihrer Fork-Adresse. <b>Vorher eine Sicherung exportieren:</b> Entwicklungs- und Normalbetrieb teilen sich dieselben Daten.</li>
+  </ol>
+
+  <h3><span class="num">5.3</span>Der bewährte Ablauf in vier Prompts</h3>
+  <p>Arbeiten Sie in kleinen Schritten: eine Änderung, testen, in der App ausprobieren. Mit <i>„Committe die Änderungen“</i> sichert der Agent jeden funktionierenden Stand.</p>
+  <div class="prompt"><div class="label">Prompt 5.1 · Überblick verschaffen <span class="wo">Claude Code / Codex</span></div><div class="text">Lies die README und verschaffe dir einen Überblick über dieses Projekt. Erkläre mir in einfachen Worten, wie es aufgebaut ist und wo die Leistungsnachweisarten, die Notenberechnung und die RSO-Hinweise stehen. Ändere noch nichts.</div></div>
+
+  <div class="prompt"><div class="label">Prompt 5.2 · Plan für das eigene Fach <span class="wo">Claude Code / Codex</span></div><div class="text">Ich unterrichte Sport an einer bayerischen Realschule. Ich möchte:
+1. die Leistungsnachweisarten „Leichtathletik“, „Geräteturnen“ und „Ballspiel“ fest einbauen (praktisch, klein, Gewicht 1),
+2. dass im Fach Sport kein Hinweis auf fehlende mündliche Noten erscheint.
+Mach zuerst einen Plan: Welche Dateien änderst du, was genau, und welche Tests ergänzt du? Warte auf meine Freigabe.</div></div>
+
+  <div class="prompt"><div class="label">Prompt 5.3 · Umsetzen und prüfen <span class="wo">Claude Code / Codex</span></div><div class="text">Der Plan passt. Setze ihn um, ergänze Tests und führe „npm test“ und „npm run check“ aus. Erkläre mir danach jede Änderung in zwei, drei Sätzen.</div></div>
+
+  <div class="prompt"><div class="label">Prompt 5.4 · Größeres Vorhaben: Leistungstabellen <span class="wo">Claude Code / Codex</span></div><div class="text">Ich möchte im Sport Messwerte (z. B. Weitsprung in Metern, 50-m-Lauf in Sekunden) per Tabelle in Noten umrechnen, getrennt nach Jahrgangsstufe und Geschlecht. Die Tabellen will ich selbst in den Einstellungen pflegen.
+Schlage zwei bis drei Lösungswege mit Vor- und Nachteilen vor und orientiere dich an der vorhandenen Notenschlüssel-Logik. Noch nichts programmieren.</div></div>
+
+</section>
+
+<!-- ========================= Anhang ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Anhang A</div><h2>Spickzettel: Befehle und Dateien</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+
+  <table>
+    <tr><th style="width:32%">Befehl</th><th>Wirkung</th></tr>
+    <tr><td><code>npm install</code></td><td>Lädt die benötigten Bausteine (einmalig und nach Updates).</td></tr>
+    <tr><td><code>npm start</code></td><td>Baut die App und startet sie unter <code>127.0.0.1:4317</code>.</td></tr>
+    <tr><td><code>npm run dev</code></td><td>Entwicklungsmodus: Änderungen erscheinen sofort im Browser.</td></tr>
+    <tr><td><code>npm test</code></td><td>Führt die automatischen Tests aus.</td></tr>
+    <tr><td><code>npm run check</code></td><td>Prüft den Code auf Typfehler.</td></tr>
+  </table>
+
+  <table>
+    <tr><th style="width:38%">Datei / Ordner</th><th>Inhalt</th></tr>
+    <tr><td><code>src/lib/domain/defaults.ts</code></td><td>Vorbelegte Leistungsnachweisarten, Notenschlüssel, Fächer, Schulaufgaben-Anzahl, Stundentafel</td></tr>
+    <tr><td><code>src/lib/domain/rules.ts</code></td><td>Hinweise nach RSO</td></tr>
+    <tr><td><code>src/lib/domain/grading.ts</code></td><td>Durchschnitte und Jahresfortgangsnote</td></tr>
+    <tr><td><code>src/lib/domain/gradeKey.ts</code></td><td>Punkte → Note</td></tr>
+    <tr><td><code>src/views/</code>, <code>src/dialogs/</code></td><td>Seiten und Dialoge der Oberfläche</td></tr>
+    <tr><td><code>tests/</code></td><td>Automatische Tests</td></tr>
+  </table>
+
+  <h3><span class="num">A.1</span>Neue Version des Originals übernehmen</h3>
+  <div class="prompt"><div class="label">Prompt A.1 · Updates einspielen <span class="wo">Claude Code / Codex</span></div><div class="text">Mein Projekt ist ein Fork von https://github.com/fbinder14/Notenmeister. Hole die neuesten Änderungen aus dem Original und führe sie mit meinen eigenen Änderungen zusammen. Zeig mir vorher, was sich ändert, und frag bei Konflikten nach. Danach „npm test“ ausführen.</div></div>
+
+  <h3><span class="num">A.2</span>Checkliste vor dem Experimentieren</h3>
+  <ul class="check">
+    <li>Sicherung exportiert?</li>
+    <li>Nur erfundene Namen in Tests, Screenshots und Prompts?</li>
+    <li>Plan der KI gelesen und verstanden?</li>
+    <li><code>npm test</code> erfolgreich?</li>
+    <li>Änderungen an Vorbelegungen gelten nur für <b>neu eingerichtete</b> Datenbestände – bestehende in den Einstellungen anpassen.</li>
+  </ul>
+
+  <div class="note"><span class="t">Kontakt</span>Fragen, Fehler und gute Ideen gern an Franz Binder – gelungene Anpassungen können in den Notenmeister für alle einfließen.</div>
+</section>
+
 </body>
 </html>
