@@ -4,6 +4,7 @@
   import { href } from '../../lib/state/router.svelte';
   import type { SchoolClass } from '../../lib/domain/types';
   import Icon from '../Icon.svelte';
+  import Widget from '../Widget.svelte';
 
   /** Vergangene Leistungsnachweise, bei denen noch Noten fehlen. Enthält keine Namen. */
   let { classes, today }: { classes: SchoolClass[]; today: string } = $props();
@@ -12,8 +13,7 @@
 </script>
 
 {#if pending.length}
-  <section>
-    <h2 class="mb-3 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">Noten fehlen noch</h2>
+  <Widget id="noten-fehlen" title="Noten fehlen noch" badge={pending.length}>
     <div class="card divide-y divide-slate-100 dark:divide-line-dark">
       {#each pending as { cls, course, assessment: a, entered, total, age } (a.id)}
         <a href={href.assessment(cls.id, course.id, a.id)} class="flex items-center gap-4 px-4 py-2.5 transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
@@ -31,5 +31,5 @@
         </a>
       {/each}
     </div>
-  </section>
+  </Widget>
 {/if}

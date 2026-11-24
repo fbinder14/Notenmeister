@@ -6,6 +6,8 @@ import {
   backupAge,
   daysBetween,
   gapLabel,
+  missingGrades,
+  missingOf,
   openMakeups,
   pendingGrading,
   relativeDays,
@@ -107,6 +109,42 @@ describe('Startseite', () => {
     expect(r.courses[0].missing.length).toBeGreaterThan(0);
     expect(reportStatus([cls([c])], ctx, '2027-08-01')).toBeNull();
     expect(reportStatus([cls([c])], ctx, '2027-03-01')!.term).toBe('jahr');
+  });
+
+  it('zählt fehlende Noten bis zum Zwischenzeugnis nach groß und klein', () => {
+    const c = course({
+      assessments: [assessment('sa1', '2026-11-10', 'typ-schulaufgabe'), assessment('sa2', '2027-01-20', 'typ-schulaufgabe'), assessment('ex1', '2026-11-12')],
+      grades: [
+        grade('a', 2, { assessmentId: 'sa1' }),
+        grade('b', null, { assessmentId: 'sa1', status: 'nachtermin' }),
+        grade('a', 3, { assessmentId: 'ex1' }),
+        grade('a', 2), // mündlich
+        grade('x', 4, { assessmentId: 'ex1' }), // ausgetreten, zählt nicht
+      ],
+    });
+    const r = missingGrades([cls([c])], ctx, '2026-11-18')!;
+    expect(r.term).toBe('zwischen');
+    expect(r.gross).toEqual({ erfasst: 1, offen: 0, nachtermin: 1, ausstehend: 2 });
+    // Ben: Ex nicht eingetragen, dazu fehlt ein weiterer kleiner Leistungsnachweis.
+    expect(r.klein).toEqual({ erfasst: 2, offen: 1, nachtermin: 0, ausstehend: 1 });
+    expect(missingOf(r.gross) + missingOf(r.klein)).toBe(5);
+    expect(r.courses[0]).toMatchObject({ complete: 0, total: 2 });
+    expect(missingGrades([cls([c])], ctx, '2027-08-01')).toBeNull();
+  });
+
+  it('rechnet beim Jahreszeugnis noch nicht angelegte Schulaufgaben und Tests ein', () => {
+    const c = course({
+      plannedSchulaufgaben: 3,
+      assessments: [assessment('sa1', '2026-11-10', 'typ-schulaufgabe'), assessment('sa2', '2027-01-20', 'typ-schulaufgabe')],
+      grades: [grade('a', 2, { assessmentId: 'sa1' }), grade('b', null, { assessmentId: 'sa1', status: 'nachtermin' })],
+    });
+    const r = missingGrades([cls([c])], ctx, '2027-03-01')!;
+    expect(r.term).toBe('jahr');
+    expect(r.gross).toEqual({ erfasst: 1, offen: 2, nachtermin: 1, ausstehend: 2 });
+
+    const t = missingGrades([cls([course({ testModel: true })])], ctx, '2027-03-01')!;
+    expect(t.gross.ausstehend).toBe(10); // 5 angesagte Tests × 2
+    expect(t.klein.ausstehend).toBe(4); // je Halbjahr ein mündlicher × 2
   });
 
   it('kürzt Lücken auf eine Bezeichnung', () => {

@@ -22,6 +22,7 @@
 </script>
 
 <ProtectedPanel
+  id="handlungsbedarf"
   title="Handlungsbedarf"
   count={items.length}
   lockedTitle={[risky ? `${risky} gefährdet` : '', few ? `${few} mit zu wenigen Noten` : ''].filter(Boolean).join(' · ')}

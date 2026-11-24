@@ -24,6 +24,7 @@
 </script>
 
 <ProtectedPanel
+  id="nachtermine"
   title="Nachtermine und Ersatznoten"
   count={items.length}
   {lockedTitle}
