@@ -2,6 +2,7 @@ import { randomId } from '../crypto/encoding';
 import { plannedSchulaufgabenFor, SUBJECT_COLORS } from '../domain/defaults';
 import { gradeFromPoints } from '../domain/gradeKey';
 import { appendLog } from '../domain/logbook';
+import { demoClass } from '../domain/onboarding';
 import type {
   Assessment,
   DeletedGrade,
@@ -161,6 +162,18 @@ export function addClass(name: string, gradeLevel: number, wpf: WpfGroup): Schoo
     courses: [],
     createdAt: now(),
   };
+  app.classes.push(c);
+  app.classes.sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
+  app.touch(c.id);
+  return app.classes.find((x) => x.id === c.id)!;
+}
+
+/** Legt die Beispielklasse im ersten eigenen Fach an (Einrichtungsassistent). */
+export function addDemoClass(): SchoolClass | null {
+  const year = app.activeYear;
+  const subject = app.core.subjects[0];
+  if (!year || !subject) return null;
+  const c = demoClass(year, subject, todayIso());
   app.classes.push(c);
   app.classes.sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
   app.touch(c.id);

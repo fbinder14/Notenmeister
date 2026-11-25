@@ -247,6 +247,15 @@
         </div>
       </details>
 
+      <!-- Einrichtungsassistent -->
+      <div class="setting-row">
+        <div>
+          <div class="flex items-center gap-2"><Icon name="sparkles" size={15} /> Einrichtungsassistent</div>
+          <div class="setting-hint">Fächer, Schuljahr, Klassen und Unterricht Schritt für Schritt einrichten oder ergänzen. Bestehende Daten bleiben erhalten.</div>
+        </div>
+        <button class="btn btn-soft h-8" onclick={() => app.reopenOnboarding()}>Öffnen</button>
+      </div>
+
       <!-- Fächer -->
       <details class="group/d">
         <summary class="setting-summary">
@@ -270,7 +279,7 @@
               {/each}
             </div>
           {:else}
-            <p class="text-[0.8125rem] text-slate-500">Fächer legst du beim Hinzufügen eines Unterrichts in einer Klasse an.</p>
+            <p class="text-[0.8125rem] text-slate-500">Noch keine Fächer. Wähle sie im Einrichtungsassistenten oder beim Hinzufügen eines Unterrichts in einer Klasse.</p>
           {/if}
         </div>
       </details>

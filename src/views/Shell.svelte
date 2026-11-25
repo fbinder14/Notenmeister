@@ -122,7 +122,7 @@
               ? 'bg-white text-slate-900 shadow-soft dark:bg-white/10 dark:text-white'
               : 'text-slate-700 hover:bg-slate-900/5 dark:text-slate-300 dark:hover:bg-white/5'}"
           >
-            <span class="flex items-center gap-2.5"><Icon name="users" size={15} class="text-slate-400" /> {cls.name}</span>
+            <span class="flex items-center gap-2.5"><Icon name="users" size={15} class="text-slate-400" /> {cls.name}{#if cls.demo}<span class="rounded-full bg-amber-100 px-1.5 py-px text-[0.5625rem] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Beispiel</span>{/if}</span>
             <span class="text-[0.6875rem] tabular-nums text-slate-400">{cls.students.length}</span>
           </a>
           {#each (pub ? [] : cls.courses) as course (course.id)}

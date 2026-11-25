@@ -1,18 +1,15 @@
 <script lang="ts">
   import { app } from '../lib/state/app.svelte';
-  import { suggestYear } from '../lib/domain/defaults';
   import { MIN_PASSWORD_LENGTH, WrongPasswordError } from '../lib/crypto/vault';
   import { toast } from '../lib/state/toast.svelte';
   import AuthFrame from './AuthFrame.svelte';
   import Icon from '../ui/Icon.svelte';
 
-  const y = suggestYear();
   let step = $state<'start' | 'password' | 'import'>('start');
   let pw = $state('');
   let pw2 = $state('');
   let show = $state(false);
   let ack = $state(false);
-  let year = $state({ ...y });
   let busy = $state(false);
   let error = $state('');
 
@@ -29,7 +26,7 @@
     if (/[^\wäöüßÄÖÜ]/.test(pw)) s++;
     return Math.min(4, s);
   });
-  const valid = $derived(pw.length >= MIN_PASSWORD_LENGTH && pw === pw2 && ack && year.name && year.start < year.halfSwitch && year.halfSwitch < year.end);
+  const valid = $derived(pw.length >= MIN_PASSWORD_LENGTH && pw === pw2 && ack);
 
   async function create(e: Event) {
     e.preventDefault();
@@ -37,8 +34,8 @@
     busy = true;
     error = '';
     try {
-      await app.setup(pw, { ...year });
-      toast.success('Tresor angelegt. Willkommen!');
+      await app.setup(pw);
+      toast.success('Tresor angelegt. Jetzt richten wir alles ein.');
     } catch (err) {
       error = (err as Error).message;
     } finally {
@@ -69,12 +66,22 @@
   }
 </script>
 
-<AuthFrame wide={step === 'password'}>
+<AuthFrame>
   {#if step === 'start'}
-    <h2 class="text-[1.0625rem] font-semibold text-slate-900 dark:text-white">Willkommen</h2>
-    <p class="mt-1.5 text-[0.8125rem] leading-relaxed text-slate-500">
-      Alle Daten bleiben auf diesem Computer und werden verschlüsselt gespeichert. Es gibt keine Cloud und kein Konto.
-    </p>
+    <h2 class="text-[1.0625rem] font-semibold text-slate-900 dark:text-white">Willkommen beim Notenmeister</h2>
+    <p class="mt-1.5 text-[0.8125rem] leading-relaxed text-slate-500">In etwa fünf Minuten ist alles startklar: Fächer, Schuljahr, Klassen und Unterricht.</p>
+    <ul class="mt-5 grid gap-2.5">
+      {#each [
+        { icon: 'lock', title: 'Verschlüsselt', text: 'Alles wird mit deinem Master-Passwort verschlüsselt.' },
+        { icon: 'shield', title: 'Nur auf diesem Computer', text: 'Keine Cloud, kein Konto, keine Übertragung ins Internet.' },
+        { icon: 'zap', title: 'Funktioniert offline', text: 'Auch ohne WLAN im Klassenzimmer.' },
+      ] as p (p.title)}
+        <li class="flex items-start gap-3">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"><Icon name={p.icon as 'lock'} size={16} /></span>
+          <span class="text-[0.8125rem] leading-snug"><b class="font-semibold text-slate-900 dark:text-white">{p.title}</b><br /><span class="text-slate-500">{p.text}</span></span>
+        </li>
+      {/each}
+    </ul>
     <div class="mt-6 grid gap-3">
       <button class="btn btn-primary h-11 justify-between px-4" onclick={() => (step = 'password')}>
         <span class="flex items-center gap-2"><Icon name="sparkles" size={16} /> Neu einrichten</span>
@@ -112,16 +119,6 @@
         {#if pw2 && pw !== pw2}<p class="text-[0.75rem] text-rose-600">Die Passwörter stimmen nicht überein.</p>{/if}
       </div>
 
-      <fieldset class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-line-dark">
-        <legend class="px-1 text-[0.75rem] font-medium text-slate-500">Erstes Schuljahr</legend>
-        <div class="grid grid-cols-2 gap-3">
-          <label><span class="label">Bezeichnung</span><input class="field" bind:value={year.name} /></label>
-          <label><span class="label">Beginn</span><input class="field" type="date" bind:value={year.start} /></label>
-          <label><span class="label">2. Halbjahr ab</span><input class="field" type="date" bind:value={year.halfSwitch} /></label>
-          <label><span class="label">Ende</span><input class="field" type="date" bind:value={year.end} /></label>
-        </div>
-      </fieldset>
-
       <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-3.5 text-[0.8125rem] leading-snug text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
         <input type="checkbox" class="mt-0.5 h-4 w-4 accent-brand-600" bind:checked={ack} />
         <span>Ich habe verstanden: Ohne dieses Passwort sind die Daten <b>unwiederbringlich verloren</b>. Es gibt keine Wiederherstellung.</span>
@@ -131,7 +128,7 @@
       <div class="flex justify-between gap-2">
         <button type="button" class="btn btn-ghost" onclick={() => (step = 'start')}><Icon name="back" size={16} /> Zurück</button>
         <button class="btn btn-primary min-w-40" disabled={!valid || busy}>
-          {#if busy}<span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span> Verschlüssele …{:else}Tresor anlegen{/if}
+          {#if busy}<span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span> Verschlüssele …{:else}Tresor anlegen und weiter{/if}
         </button>
       </div>
     </form>

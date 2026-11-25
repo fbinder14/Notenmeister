@@ -19,6 +19,7 @@
   import BackupCard from '../ui/dashboard/BackupCard.svelte';
   import YearBar from '../ui/dashboard/YearBar.svelte';
   import Widget from '../ui/Widget.svelte';
+  import GettingStarted from '../ui/dashboard/GettingStarted.svelte';
   import { SUBJECT_GRADIENT } from '../ui/colors';
 
   let { onnewclass }: { onnewclass: () => void } = $props();
@@ -42,6 +43,7 @@
 <PageHeader title={greeting} eyebrow={new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} />
 
 <div class="mx-auto grid max-w-6xl gap-6 px-8 py-7">
+  <GettingStarted {classes} {onnewclass} />
   {#if !classes.length}
     <Empty icon="users" title="Noch keine Klassen" text="Lege deine erste Klasse an und füge Schülerinnen und Schüler sowie deine Fächer hinzu.">
       <button class="btn btn-primary" onclick={onnewclass}><Icon name="plus" size={15} /> Klasse anlegen</button>
@@ -70,7 +72,7 @@
                     <span class="text-[0.75rem] font-semibold uppercase tracking-wide {g.text}">{s?.short}</span>
                     <Icon name="chevron" size={16} class="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
                   </div>
-                  <div class="mt-1 truncate text-[0.9375rem] font-semibold text-slate-900 dark:text-white" title="{cls.name} · {s?.name}">{cls.name} · {s?.name}</div>
+                  <div class="mt-1 truncate text-[0.9375rem] font-semibold text-slate-900 dark:text-white" title="{cls.name} · {s?.name}">{cls.name} · {s?.name}{#if cls.demo}<span class="ml-2 align-middle rounded-full bg-amber-100 px-1.5 py-px text-[0.625rem] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Beispiel</span>{/if}</div>
                   <div class="mt-2 flex gap-3 text-[0.75rem] text-slate-500">
                     <span>{course.assessments.length} Leistungsnachweise</span>
                     <span>{course.grades.length} Noten</span>
