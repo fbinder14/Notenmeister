@@ -95,7 +95,7 @@
 {#if !cls}
   <div class="p-8"><Empty icon="users" title="Klasse nicht gefunden" /></div>
 {:else}
-  <PageHeader title="Klasse {cls.name}" eyebrow="Jahrgangsstufe {cls.gradeLevel}{cls.wpf ? ` · Wahlpflichtfächergruppe ${cls.wpf}` : ''}">
+  <PageHeader title="Klasse {cls.name}" eyebrow="{cls.demo ? 'Beispielklasse · erfundene Namen · ' : ''}Jahrgangsstufe {cls.gradeLevel}{cls.wpf ? ` · Wahlpflichtfächergruppe ${cls.wpf}` : ''}">
     {#snippet actions()}
       <button class="btn btn-ghost" onclick={() => (editClass = true)}><Icon name="edit" size={15} /> Bearbeiten</button>
       <button class="btn btn-soft" onclick={() => (importOpen = true)}><Icon name="users" size={15} /> Schüler hinzufügen</button>

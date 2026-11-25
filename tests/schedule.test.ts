@@ -62,3 +62,40 @@ describe('Termine', () => {
     expect(nextAssessmentTitle(c, type('angesagter_test'))).toBe('1. Angesagter Test');
   });
 });
+
+describe('Termine mit Schulkalender', () => {
+  const full: SchoolYear = {
+    ...year,
+    halfSwitch: '2027-02-20',
+    reportDays: { zwischen: '2027-02-19' },
+    reportDeadlines: { zwischen: '2027-02-05', jahr: '2027-07-16' },
+    holidays: [
+      { name: 'Weihnachtsferien', start: '2026-12-24', end: '2027-01-08' },
+      { name: 'Buß- und Bettag', start: '2026-11-18', end: '2026-11-18' },
+    ],
+    finalExam: { start: '2027-06-22', end: '2027-07-02', deadline: '2027-06-15' },
+  };
+  const c = course('c1', 'bwr', []);
+
+  it('warnt bei Terminen in den Ferien und an unterrichtsfreien Tagen', () => {
+    expect(texts(planningHints(cls([c]), c, type('stegreifaufgabe'), '2027-01-05', core, full, today))).toContain('in den Weihnachtsferien');
+    expect(texts(planningHints(cls([c]), c, type('stegreifaufgabe'), '2026-11-18', core, full, '2026-11-01'))).toContain('unterrichtsfrei (Buß- und Bettag)');
+  });
+
+  it('weist auf Termine nach dem Notenschluss hin', () => {
+    expect(texts(planningHints(cls([c]), c, type('stegreifaufgabe'), '2027-02-10', core, full, today))).toContain('nach dem Notenschluss (05.02.)');
+    expect(planningHints(cls([c]), c, type('stegreifaufgabe'), '2027-02-04', core, full, today)).toEqual([]);
+  });
+
+  it('kennt Abschlussprüfung und vorgezogenen Notenschluss der 10. Klassen', () => {
+    const k10 = { ...cls([c]), gradeLevel: 10 };
+    const h = texts(planningHints(k10, c, type('stegreifaufgabe'), '2027-06-23', core, full, today));
+    expect(h).toContain('Abschlussprüfung');
+    expect(h).toContain('nach dem Notenschluss (15.06.)');
+    expect(planningHints(cls([c]), c, type('stegreifaufgabe'), '2027-06-23', core, full, today)).toEqual([]);
+  });
+
+  it('meldet geplante Termine am Wochenende', () => {
+    expect(texts(planningHints(cls([c]), c, type('stegreifaufgabe'), '2026-12-05', core, year, today))).toContain('Wochenende');
+  });
+});

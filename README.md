@@ -32,6 +32,18 @@ Wird der Repo-Ordner verschoben, `npm run autostart:install` im neuen Ordner ern
 
 **Wichtig:** Immer genau `http://127.0.0.1:4317` verwenden. `localhost:4317` ist für den Browser eine andere Seite – dort erscheint die App leer, weil die Daten unter `127.0.0.1` gespeichert sind.
 
+## Erster Start
+
+Nach dem Festlegen des Master-Passworts führt ein Einrichtungsassistent in wenigen Minuten durch:
+
+1. **Fächer**, für die du die Lehrbefähigung hast.
+2. **Schuljahr und Termine**: vorbelegt nach der bayerischen Ferienordnung (BayMBl. 2022 Nr. 747, Schuljahre 2026/27 bis 2029/30) mit Zwischen- und Jahreszeugnis, Ferien und den Terminen der Abschlussprüfung. Der Notenschluss ist ein Vorschlag (zwei Wochen vor dem Zeugnis) und sollte mit dem Terminplan der Schule abgeglichen werden.
+3. **Klassen und Schülerlisten**: mehrere Klassen auf einmal („7a, 8b, 9c“), Namen per Einfügen, CSV-/Excel-Datei, einzeln oder später. Auf Wunsch eine Beispielklasse mit erfundenen Namen zum Ausprobieren.
+4. **Unterricht**: welches Fach in welcher Klasse, mit Wochenstunden und Schulaufgaben nach Stundentafel und RSO § 18.
+5. **Sicherung**: Sicherungsordner wählen oder eine Sicherungsdatei herunterladen.
+
+Jeder Schritt speichert sofort und lässt sich überspringen; nach dem Sperren geht es an derselben Stelle weiter. Danach hilft die Karte „Erste Schritte“ auf der Startseite. Der Assistent lässt sich in den Einstellungen (Unterricht › Einrichtungsassistent) jederzeit erneut öffnen. Wer aus einer Sicherung wiederherstellt, überspringt ihn.
+
 ## Datenschutz und Sicherheit
 
 - **Verschlüsselung:** AES-256-GCM über die im Browser eingebaute WebCrypto-API. Der Datenschlüssel wird mit einem aus dem Master-Passwort abgeleiteten Schlüssel verpackt (PBKDF2-HMAC-SHA-256, 600.000 Runden, zufälliges Salt). Schlüssel sind nicht exportierbar und liegen nur im Arbeitsspeicher.
@@ -56,7 +68,7 @@ Fassung der Realschulordnung gültig ab 01.08.2026.
 - Jahresfortgangsnote als gewichteter Schnitt (§ 23); große und kleine Nachweise werden zusätzlich getrennt ausgewiesen.
 - Die Zeugnisnote setzt die Lehrkraft; die App macht nur einen Vorschlag.
 - Status je Note: gewertet, Nachtermin offen (§ 22), Note 6 bei unentschuldigtem Versäumnis oder Verweigerung (§ 21 Abs. 4) oder Unterschleif (§ 21 Abs. 2), nicht gewertet.
-- Hinweise bei: weniger als zwei kleinen Nachweisen pro Halbjahr oder fehlender mündlicher Note (§ 19 Abs. 6), falscher Anzahl Schulaufgaben (§ 18 Abs. 1), mehreren angekündigten Nachweisen an einem Tag, mehr als drei pro Woche oder einer Stegreifaufgabe am Schulaufgabentag (§ 17 Abs. 3), Schulaufgaben ohne doppeltes Gewicht (§ 23 Abs. 2), offenen Nachterminen und fehlenden Zeugnisnoten.
+- Hinweise bei: weniger als zwei kleinen Nachweisen pro Halbjahr oder fehlender mündlicher Note (§ 19 Abs. 6), falscher Anzahl Schulaufgaben (§ 18 Abs. 1), mehreren angekündigten Nachweisen an einem Tag, mehr als drei pro Woche oder einer Stegreifaufgabe am Schulaufgabentag (§ 17 Abs. 3), Schulaufgaben ohne doppeltes Gewicht (§ 23 Abs. 2), offenen Nachterminen und fehlenden Zeugnisnoten vor dem Notenschluss. Bei der Terminplanung zusätzlich Hinweise auf Ferien, Wochenenden, Termine nach dem Notenschluss und – für 10. Klassen – den Zeitraum der Abschlussprüfung.
 
 ## Entwicklung
 

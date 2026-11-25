@@ -3,6 +3,7 @@
   import Setup from './views/Setup.svelte';
   import Unlock from './views/Unlock.svelte';
   import Shell from './views/Shell.svelte';
+  import Onboarding from './views/Onboarding.svelte';
   import Toasts from './ui/Toasts.svelte';
 
   // Design: hell, dunkel oder System – vor dem Entsperren gilt das System.
@@ -24,6 +25,8 @@
   <Setup />
 {:else if app.phase === 'locked'}
   <Unlock />
+{:else if app.onboardingOpen && !app.publicMode}
+  <Onboarding />
 {:else}
   <Shell />
 {/if}

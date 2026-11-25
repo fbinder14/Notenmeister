@@ -90,12 +90,13 @@ export function guessMapping(rows: Rows): Mapping {
 
 export function splitFull(full: string, mode: Mapping['split']): { lastName: string; firstName: string } {
   const s = full.replace(/\s+/g, ' ').trim();
-  if (mode === 'komma' || s.includes(',')) {
+  if (s.includes(',')) {
     const [a, ...b] = s.split(',');
     return { lastName: a.trim(), firstName: b.join(',').trim() };
   }
   const parts = s.split(' ');
   if (parts.length === 1) return { lastName: parts[0], firstName: '' };
+  // „komma“ ohne Komma in der Zeile (gemischte Liste): wie „Vorname Nachname“ lesen.
   if (mode === 'nachname-zuerst') return { lastName: parts[0], firstName: parts.slice(1).join(' ') };
   // Vorname zuerst: Nachnamenspräfixe wie „von“, „van“, „de“ gehören zum Nachnamen.
   let i = parts.length - 1;
@@ -109,6 +110,8 @@ export function applyMapping(rows: Rows, m: Mapping): Array<{ lastName: string; 
   for (const r of body) {
     let res: { lastName: string; firstName: string };
     if (m.first < 0) res = splitFull(r[m.last] ?? '', m.split);
+    // Gemischte Liste: Zeile ohne Trennzeichen (z. B. „Lena Huber“ zwischen „Huber, Lena“) wie einen vollen Namen behandeln.
+    else if (r.length === 1 && m.last === 0) res = splitFull(r[0] ?? '', 'vorname-zuerst');
     else res = { lastName: (r[m.last] ?? '').trim(), firstName: (r[m.first] ?? '').trim() };
     if (res.lastName || res.firstName) out.push(res);
   }

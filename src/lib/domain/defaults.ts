@@ -1,4 +1,5 @@
 import { randomId } from '../crypto/encoding';
+import { bavarianYear } from './calendar';
 import type { AssessmentType, Core, GradeKey, SchoolYear, Subject, WpfGroup } from './types';
 
 /** Vorbelegung nach RSO §§ 17–19, 23 (Fassung gültig ab 01.08.2026). */
@@ -50,9 +51,15 @@ export function defaultGradeKeys(): GradeKey[] {
 export const SUBJECT_COLORS = ['indigo', 'sky', 'emerald', 'amber', 'rose', 'violet', 'teal', 'orange', 'slate'] as const;
 export type SubjectColor = (typeof SUBJECT_COLORS)[number];
 
-/** Schuljahr nach bayerischem Muster: Beginn Mitte September, Halbjahr Mitte Februar, Ende Ende Juli. */
+/**
+ * Schuljahr nach der bayerischen Ferienordnung (mit Ferien und Zeugnisterminen);
+ * außerhalb der hinterlegten Jahre nach Muster: Beginn Mitte September,
+ * Halbjahr Mitte Februar, Ende Ende Juli.
+ */
 export function suggestYear(today = new Date()): SchoolYear {
   const y = today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
+  const table = bavarianYear(y);
+  if (table) return { id: randomId(), ...table };
   return {
     id: randomId(),
     name: `${y}/${String((y + 1) % 100).padStart(2, '0')}`,
@@ -106,21 +113,16 @@ export function plannedSchulaufgabenFor(subjectName: string, gradeLevel: number,
   const i = gradeLevel - 5;
   if (i < 0 || i > 5) return null;
   const n = subjectName.toLowerCase();
-  const g1 = wpf === 'I';
   const pick = (row: Array<number | null>) => row[i];
+  // Ohne Wahlpflichtfächergruppe nur, wenn Gruppe I und die übrigen Gruppen übereinstimmen.
+  const byGroup = (g1Row: Array<number | null>, otherRow: Array<number | null>) => {
+    if (wpf) return pick(wpf === 'I' ? g1Row : otherRow);
+    return pick(g1Row) === pick(otherRow) ? pick(g1Row) : null;
+  };
   if (n.startsWith('deutsch') || n.startsWith('englisch')) return pick([4, 4, 4, 4, 3, 3]);
-  if (n.startsWith('mathe')) {
-    if (!wpf) return null;
-    return pick(g1 ? [4, 4, 4, 4, 4, 3] : [4, 4, 3, 3, 3, 3]);
-  }
-  if (n.startsWith('physik')) {
-    if (!wpf) return null;
-    return pick(g1 ? [null, null, 2, 2, 3, 3] : [null, null, null, 2, 2, 2]);
-  }
-  if (n.startsWith('chemie')) {
-    if (!wpf) return null;
-    return pick(g1 ? [null, null, null, 2, 2, 2] : [null, null, null, null, 2, 2]);
-  }
+  if (n.startsWith('mathe')) return byGroup([4, 4, 4, 4, 4, 3], [4, 4, 3, 3, 3, 3]);
+  if (n.startsWith('physik')) return byGroup([null, null, 2, 2, 3, 3], [null, null, null, 2, 2, 2]);
+  if (n.startsWith('chemie')) return byGroup([null, null, null, 2, 2, 2], [null, null, null, null, 2, 2]);
   if (n.startsWith('betriebswirtschaft') || n === 'bwr') return wpf === 'II' ? pick([null, null, 3, 3, 3, 3]) : null;
   if (n.startsWith('französisch')) return wpf === 'IIIa' ? pick([null, null, 3, 3, 3, 3]) : null;
   if (['kunst', 'werken', 'ernährung und gesundheit', 'sozialwesen'].some((s) => n.startsWith(s))) {

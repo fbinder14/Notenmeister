@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { missingGrades, missingOf, type GradeSlots } from '../../lib/domain/dashboard';
+  import { daysBetween, missingGrades, missingOf, type GradeSlots } from '../../lib/domain/dashboard';
   import type { Ctx } from '../../lib/domain/grading';
   import { fmtDate, subjectOf } from '../../lib/state/actions';
   import { href } from '../../lib/state/router.svelte';
@@ -21,7 +21,11 @@
 
   const r = $derived(missingGrades(classes, ctx, today));
   const ready = $derived(r ? r.courses.filter((c) => c.complete === c.total).length : 0);
-  const urgent = $derived(r ? r.daysLeft <= 21 : false);
+  /** Gezählt wird bis zum Notenschluss, danach bis zur Ausgabe des Zeugnisses. */
+  const beforeDeadline = $derived(!!r?.deadline && today <= r.deadline);
+  const target = $derived(r ? (beforeDeadline ? r.deadline! : r.date) : '');
+  const daysLeft = $derived(r ? daysBetween(today, target) : 0);
+  const urgent = $derived(r ? daysLeft <= 21 : false);
   const missing = $derived(r ? missingOf(r.gross) + missingOf(r.klein) : 0);
 
   const KINDS: Array<{ key: keyof GradeSlots; label: string; stroke: string; dot: string }> = [
@@ -38,7 +42,7 @@
 
 {#if r && r.courses.length}
   {@const title = r.term === 'zwischen' ? 'Zwischenzeugnis' : 'Jahreszeugnis'}
-  <Widget id="zeugnis" {title} badge={missing ? `${missing} fehlen` : `${r.daysLeft} T.`}>
+  <Widget id="zeugnis" {title} badge={missing ? `${missing} fehlen` : `${daysLeft} T.`}>
     <div class="card overflow-hidden">
       <div class="flex items-center gap-4 px-4 py-4">
         <div
@@ -47,15 +51,27 @@
             : 'bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-soft'}"
         >
           <div>
-            <div class="text-[1.25rem] font-semibold leading-none tabular-nums">{r.daysLeft}</div>
-            <div class="mt-0.5 text-[0.625rem] uppercase tracking-wide opacity-90">{r.daysLeft === 1 ? 'Tag' : 'Tage'}</div>
+            <div class="text-[1.25rem] font-semibold leading-none tabular-nums">{daysLeft}</div>
+            <div class="mt-0.5 text-[0.625rem] uppercase tracking-wide opacity-90">{daysLeft === 1 ? 'Tag' : 'Tage'}</div>
           </div>
         </div>
         <div class="min-w-0">
-          <div class="text-[0.875rem] font-semibold text-slate-900 dark:text-white">bis {r.term === 'zwischen' ? 'zum Halbjahreswechsel' : 'zum Schuljahresende'} am {fmtDate(r.date)}</div>
-          <div class="text-[0.75rem] text-slate-500">
-            {ready} von {r.courses.length} Kurs{r.courses.length === 1 ? '' : 'en'} vollständig · Notenschluss rechtzeitig vorher einplanen
-          </div>
+          {#if beforeDeadline}
+            <div class="text-[0.875rem] font-semibold text-slate-900 dark:text-white">bis zum Notenschluss am {fmtDate(target)}</div>
+            <div class="text-[0.75rem] text-slate-500">
+              {title} am {fmtDate(r.date)} · {ready} von {r.courses.length} Kurs{r.courses.length === 1 ? '' : 'en'} vollständig
+            </div>
+          {:else}
+            <div class="text-[0.875rem] font-semibold text-slate-900 dark:text-white">bis {r.term === 'zwischen' ? 'zum Zwischenzeugnis' : 'zum Jahreszeugnis'} am {fmtDate(r.date)}</div>
+            <div class="text-[0.75rem] text-slate-500">
+              {ready} von {r.courses.length} Kurs{r.courses.length === 1 ? '' : 'en'} vollständig · {r.deadline ? `Notenschluss war am ${fmtDate(r.deadline)}` : 'Notenschluss rechtzeitig vorher einplanen'}
+            </div>
+          {/if}
+          {#if r.examDeadline}
+            <div class="mt-1 flex items-center gap-1.5 text-[0.75rem] font-medium {today <= r.examDeadline ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}">
+              <Icon name="alert" size={13} /> 10. Klassen: Notenschluss vor der Abschlussprüfung am {fmtDate(r.examDeadline)}
+            </div>
+          {/if}
         </div>
       </div>
 

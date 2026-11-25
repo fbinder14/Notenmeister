@@ -1,8 +1,9 @@
 import { changePassword as rewrap, createVault, unlockVault, type VaultHeader } from '../crypto/vault';
-import { emptyCore } from '../domain/defaults';
-import type { Core, Data, SchoolClass, SchoolYear } from '../domain/types';
+import { emptyCore, suggestYear } from '../domain/defaults';
+import { needsOnboarding } from '../domain/onboarding';
+import type { Core, Data, OnboardingStep, SchoolClass, SchoolYear } from '../domain/types';
 import { backupFileName, buildBackup, openBackup, parseBackup } from '../storage/backupFile';
-import { ensurePermission, getBackupDir, writeBackup } from '../storage/folderBackup';
+import { chooseBackupDir, ensurePermission, getBackupDir, writeBackup } from '../storage/folderBackup';
 import { getMeta, requestPersistence, STORE_META, wipe, writeAll } from '../storage/idb';
 import { CORE_KEY, loadData, loadHeader, replaceAll, saveChunks, saveHeader } from '../storage/repository';
 import { toast } from './toast.svelte';
@@ -95,15 +96,52 @@ class App {
     this.#watchActivity();
   }
 
-  async setup(password: string, year: SchoolYear) {
+  /** Legt den Tresor an; Schuljahr und alles Weitere folgen im Einrichtungsassistenten. */
+  async setup(password: string, year: SchoolYear = suggestYear()) {
     const { header, key } = await createVault(password);
     const core = emptyCore();
     core.years.push(year);
     core.settings.activeYearId = year.id;
+    core.settings.onboarding = { step: 'faecher' };
     const data: Data = { core, classes: [] };
     await replaceAll(header, key, data);
     this.#open(header, key, data);
     this.persisted = await requestPersistence();
+    void this.#initFolderBackup();
+  }
+
+  // ---------- Einrichtungsassistent ----------
+
+  /** Assistent offen? Null-sicher, weil `lock()` die Daten vor dem Phasenwechsel entfernt. */
+  get onboardingOpen(): boolean {
+    return needsOnboarding(this.data?.core.settings);
+  }
+
+  setOnboardingStep(step: OnboardingStep) {
+    const o = this.core.settings.onboarding;
+    this.core.settings.onboarding = { ...o, step };
+    this.touch();
+  }
+
+  /** Beendet den Assistenten (fertig oder „später“) und zeigt die Startseite. */
+  finishOnboarding() {
+    const o = this.core.settings.onboarding ?? { step: 'fertig' as const };
+    this.core.settings.onboarding = { ...o, doneAt: new Date().toISOString() };
+    this.touch();
+    location.hash = '#/';
+  }
+
+  /** Öffnet den Assistenten erneut, z. B. aus den Einstellungen. */
+  reopenOnboarding() {
+    const o = this.core.settings.onboarding;
+    this.core.settings.onboarding = { step: 'faecher', ...(o?.checklistDismissedAt ? { checklistDismissedAt: o.checklistDismissedAt } : {}) };
+    this.touch();
+  }
+
+  dismissChecklist() {
+    const o = this.core.settings.onboarding ?? { step: 'fertig' as const, doneAt: new Date().toISOString() };
+    this.core.settings.onboarding = { ...o, checklistDismissedAt: new Date().toISOString() };
+    this.touch();
   }
 
   async unlock(password: string) {
@@ -219,6 +257,9 @@ class App {
   /** Ersetzt den gesamten Bestand durch eine Sicherung. Danach gilt das Passwort der Sicherung. */
   async importBackup(text: string, password: string) {
     const { header, key, data } = await openBackup(parseBackup(text), password);
+    // Eine Sicherung aus der Einrichtung soll den Assistenten nicht erneut öffnen.
+    const o = data.core.settings.onboarding;
+    if (o && !o.doneAt) o.doneAt = new Date().toISOString();
     await replaceAll(header, key, data);
     this.#open(header, key, data);
   }
@@ -237,6 +278,8 @@ class App {
     this.#key = null;
     this.#header = null;
     this.data = null;
+    this.folderBackup = { name: null, ok: false, lastAt: null };
+    this.lastBackupAt = null;
     this.phase = 'setup';
     location.hash = '#/';
   }
@@ -252,6 +295,22 @@ class App {
 
   async refreshFolderBackup() {
     await this.#initFolderBackup();
+  }
+
+  /**
+   * Lässt einen Sicherungsordner wählen und schreibt sofort die erste Sicherung.
+   * Muss direkt aus einem Klick heraus aufgerufen werden (Ordnerauswahl des Browsers).
+   */
+  async setupFolderBackup(): Promise<'ok' | 'cancelled' | 'failed'> {
+    try {
+      await chooseBackupDir();
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return 'cancelled';
+      console.error(e);
+      return 'failed';
+    }
+    await this.#initFolderBackup();
+    return (await this.#runFolderBackup(true)) ? 'ok' : 'failed';
   }
 
   #scheduleFolderBackup() {

@@ -209,6 +209,13 @@ describe('Schulaufgaben nach RSO § 18 Abs. 1', () => {
     expect(plannedSchulaufgabenFor('Physik', 7, 'II')).toBeNull();
     expect(plannedSchulaufgabenFor('Geschichte', 8, 'I')).toBeNull();
   });
+
+  it('kommt ohne Wahlpflichtfächergruppe aus, wenn alle Gruppen übereinstimmen', () => {
+    expect(plannedSchulaufgabenFor('Mathematik', 5, '')).toBe(4);
+    expect(plannedSchulaufgabenFor('Mathematik', 6, '')).toBe(4);
+    expect(plannedSchulaufgabenFor('Mathematik', 7, '')).toBeNull();
+    expect(plannedSchulaufgabenFor('Physik', 5, '')).toBeNull();
+  });
 });
 
 describe('Vollständigkeit je Halbjahr', () => {

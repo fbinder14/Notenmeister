@@ -1,3 +1,4 @@
+import { deadlineFor, hasDeadline, reportDay } from './calendar';
 import { counts, entriesFor, halfOf, needsReplacement, replacementFor, summarize, typeOf, type Ctx } from './grading';
 import { activeStudents, minSmallPerHalf, needsOral, studentCompleteness } from './rules';
 import type { Assessment, Category, Course, Grade, Half, ReportTerm, SchoolClass, SchoolYear, Student } from './types';
@@ -209,7 +210,7 @@ export function reportStatus(classes: SchoolClass[], ctx: Ctx, today: string): R
   const year = ctx.year;
   if (today > year.end) return null;
   const term: ReportTerm = today < year.halfSwitch ? 'zwischen' : 'jahr';
-  const date = term === 'zwischen' ? year.halfSwitch : year.end;
+  const date = reportDay(year, term);
   const courses: CourseReportState[] = [];
   for (const cls of classes) {
     for (const course of cls.courses) {
@@ -266,8 +267,13 @@ export interface CourseMissing {
 
 export interface MissingGrades {
   term: ReportTerm;
+  /** Ausgabetag des Zeugnisses. */
   date: string;
   daysLeft: number;
+  /** Notenschluss, falls im Schuljahr hinterlegt (sonst gilt der Ausgabetag). */
+  deadline?: string;
+  /** Vorgezogener Notenschluss der 10. Klassen vor der Abschlussprüfung (nur Jahreszeugnis). */
+  examDeadline?: string;
   gross: GradeSlots;
   klein: GradeSlots;
   courses: CourseMissing[];
@@ -291,7 +297,7 @@ export function missingGrades(classes: SchoolClass[], ctx: Ctx, today: string): 
   const year = ctx.year;
   if (today > year.end) return null;
   const term: ReportTerm = today < year.halfSwitch ? 'zwischen' : 'jahr';
-  const date = term === 'zwischen' ? year.halfSwitch : year.end;
+  const date = reportDay(year, term);
   const halves: Half[] = term === 'zwischen' ? [1] : [1, 2];
   const catOf = (typeId: string | undefined): Category => ctx.types.get(typeId ?? '')?.category ?? 'klein';
   const gross = emptySlots();
@@ -357,7 +363,12 @@ export function missingGrades(classes: SchoolClass[], ctx: Ctx, today: string): 
     }
   }
   courses.sort((a, b) => missingOf(b.gross) + missingOf(b.klein) - (missingOf(a.gross) + missingOf(a.klein)));
-  return { term, date, daysLeft: daysBetween(today, date), gross, klein, courses };
+  const out: MissingGrades = { term, date, daysLeft: daysBetween(today, date), gross, klein, courses };
+  if (hasDeadline(year, term)) out.deadline = deadlineFor(year, term);
+  if (term === 'jahr' && hasDeadline(year, term, 10) && classes.some((c) => c.gradeLevel === 10 && c.courses.length)) {
+    out.examDeadline = deadlineFor(year, term, 10);
+  }
+  return out;
 }
 
 // ---------- Datensicherung ----------

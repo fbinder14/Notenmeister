@@ -5,8 +5,8 @@
   import { MIN_PASSWORD_LENGTH, WrongPasswordError } from '../lib/crypto/vault';
   import { validateThresholds } from '../lib/domain/gradeKey';
   import { suggestYear, SUBJECT_COLORS } from '../lib/domain/defaults';
-  import { gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
-  import { chooseBackupDir, folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
+  import { fmtDate, gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
+  import { folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
   import type { AssessmentType, GradeKey } from '../lib/domain/types';
   import PageHeader from '../ui/PageHeader.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -14,6 +14,7 @@
   import Segmented from '../ui/Segmented.svelte';
   import { SUBJECT_DOT } from '../ui/colors';
   import { fontScale, FONT_SCALE_OPTIONS } from '../lib/state/fontScale.svelte';
+  import YearEditor from '../ui/YearEditor.svelte';
 
   const core = $derived(app.core);
   const s = $derived(app.core.settings);
@@ -70,13 +71,9 @@
   }
 
   async function pickFolder() {
-    try {
-      await chooseBackupDir();
-      await app.refreshFolderBackup();
-      if (await app.runFolderBackupNow()) toast.success('Ordner gewählt, erste Sicherung geschrieben.');
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') toast.error((e as Error).message);
-    }
+    const r = await app.setupFolderBackup();
+    if (r === 'ok') toast.success('Ordner gewählt, erste Sicherung geschrieben.');
+    else if (r === 'failed') toast.error('Der Ordner konnte nicht verwendet werden. Bitte einen anderen wählen.');
   }
   async function backupNow() {
     if (await app.runFolderBackupNow()) toast.success('Sicherung in den Ordner geschrieben.');
@@ -229,24 +226,35 @@
           <Icon name="chevron" size={16} class="text-slate-400 transition group-open/d:rotate-90" />
         </summary>
         <div class="setting-body">
-          <div class="grid gap-2">
+          <div class="grid gap-3">
             {#each core.years as y (y.id)}
-              <div class="grid grid-cols-[7rem_1fr_1fr_1fr_auto] items-center gap-2 rounded-xl p-2 {s.activeYearId === y.id ? 'bg-brand-50/70 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : ''}">
-                <input class="field h-8" bind:value={y.name} onchange={touch} />
-                <label class="text-[0.6875rem] text-slate-500">Beginn<input class="field h-8" type="date" bind:value={y.start} onchange={touch} /></label>
-                <label class="text-[0.6875rem] text-slate-500">2. Halbjahr ab<input class="field h-8" type="date" bind:value={y.halfSwitch} onchange={touch} /></label>
-                <label class="text-[0.6875rem] text-slate-500">Ende<input class="field h-8" type="date" bind:value={y.end} onchange={touch} /></label>
-                {#if s.activeYearId === y.id}
-                  <span class="px-3 text-[0.75rem] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
-                {:else}
-                  <button class="btn btn-ghost h-8" onclick={() => activate(y.id)}>Aktivieren</button>
-                {/if}
-              </div>
+              <details class="group/y rounded-xl border p-3 {s.activeYearId === y.id ? 'border-brand-200 bg-brand-50/40 dark:border-brand-500/30 dark:bg-brand-500/5' : 'border-slate-200 dark:border-line-dark'}" open={s.activeYearId === y.id}>
+                <summary class="flex cursor-pointer list-none items-center gap-3">
+                  <Icon name="chevron" size={15} class="text-slate-400 transition group-open/y:rotate-90" />
+                  <span class="w-20 text-[0.8125rem] font-semibold">{y.name}</span>
+                  <span class="flex-1 text-[0.75rem] text-slate-500">{fmtDate(y.start)} – {fmtDate(y.end)}</span>
+                  {#if s.activeYearId === y.id}
+                    <span class="px-3 text-[0.75rem] font-medium text-brand-700 dark:text-brand-300">aktiv</span>
+                  {:else}
+                    <button class="btn btn-ghost h-8" onclick={(e) => { e.preventDefault(); activate(y.id); }}>Aktivieren</button>
+                  {/if}
+                </summary>
+                <div class="mt-3"><YearEditor year={y} onchange={touch} /></div>
+              </details>
             {/each}
           </div>
           <button class="btn btn-soft mt-3 h-8" onclick={addYear}><Icon name="plus" size={14} /> Schuljahr</button>
         </div>
       </details>
+
+      <!-- Einrichtungsassistent -->
+      <div class="setting-row">
+        <div>
+          <div class="flex items-center gap-2"><Icon name="sparkles" size={15} /> Einrichtungsassistent</div>
+          <div class="setting-hint">Fächer, Schuljahr, Klassen und Unterricht Schritt für Schritt einrichten oder ergänzen. Bestehende Daten bleiben erhalten.</div>
+        </div>
+        <button class="btn btn-soft h-8" onclick={() => app.reopenOnboarding()}>Öffnen</button>
+      </div>
 
       <!-- Fächer -->
       <details class="group/d">
@@ -271,7 +279,7 @@
               {/each}
             </div>
           {:else}
-            <p class="text-[0.8125rem] text-slate-500">Fächer legst du beim Hinzufügen eines Unterrichts in einer Klasse an.</p>
+            <p class="text-[0.8125rem] text-slate-500">Noch keine Fächer. Wähle sie im Einrichtungsassistenten oder beim Hinzufügen eines Unterrichts in einer Klasse.</p>
           {/if}
         </div>
       </details>

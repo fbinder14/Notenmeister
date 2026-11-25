@@ -26,6 +26,15 @@ describe('CSV-Import', () => {
     ]);
   });
 
+  it('kommt mit gemischten Listen aus Komma- und Freitextzeilen zurecht', () => {
+    const rows = parseCsv('Huber, Lena\nMaximilian von Stein\nÖztürk, Can');
+    expect(applyMapping(rows, guessMapping(rows))).toEqual([
+      { lastName: 'Huber', firstName: 'Lena' },
+      { lastName: 'von Stein', firstName: 'Maximilian' },
+      { lastName: 'Öztürk', firstName: 'Can' },
+    ]);
+  });
+
   it('teilt volle Namen auf', () => {
     expect(splitFull('Huber, Lena Marie', 'komma')).toEqual({ lastName: 'Huber', firstName: 'Lena Marie' });
     expect(splitFull('Lena Marie Huber', 'vorname-zuerst')).toEqual({ lastName: 'Huber', firstName: 'Lena Marie' });
