@@ -106,21 +106,16 @@ export function plannedSchulaufgabenFor(subjectName: string, gradeLevel: number,
   const i = gradeLevel - 5;
   if (i < 0 || i > 5) return null;
   const n = subjectName.toLowerCase();
-  const g1 = wpf === 'I';
   const pick = (row: Array<number | null>) => row[i];
+  // Ohne Wahlpflichtfächergruppe nur, wenn Gruppe I und die übrigen Gruppen übereinstimmen.
+  const byGroup = (g1Row: Array<number | null>, otherRow: Array<number | null>) => {
+    if (wpf) return pick(wpf === 'I' ? g1Row : otherRow);
+    return pick(g1Row) === pick(otherRow) ? pick(g1Row) : null;
+  };
   if (n.startsWith('deutsch') || n.startsWith('englisch')) return pick([4, 4, 4, 4, 3, 3]);
-  if (n.startsWith('mathe')) {
-    if (!wpf) return null;
-    return pick(g1 ? [4, 4, 4, 4, 4, 3] : [4, 4, 3, 3, 3, 3]);
-  }
-  if (n.startsWith('physik')) {
-    if (!wpf) return null;
-    return pick(g1 ? [null, null, 2, 2, 3, 3] : [null, null, null, 2, 2, 2]);
-  }
-  if (n.startsWith('chemie')) {
-    if (!wpf) return null;
-    return pick(g1 ? [null, null, null, 2, 2, 2] : [null, null, null, null, 2, 2]);
-  }
+  if (n.startsWith('mathe')) return byGroup([4, 4, 4, 4, 4, 3], [4, 4, 3, 3, 3, 3]);
+  if (n.startsWith('physik')) return byGroup([null, null, 2, 2, 3, 3], [null, null, null, 2, 2, 2]);
+  if (n.startsWith('chemie')) return byGroup([null, null, null, 2, 2, 2], [null, null, null, null, 2, 2]);
   if (n.startsWith('betriebswirtschaft') || n === 'bwr') return wpf === 'II' ? pick([null, null, 3, 3, 3, 3]) : null;
   if (n.startsWith('französisch')) return wpf === 'IIIa' ? pick([null, null, 3, 3, 3, 3]) : null;
   if (['kunst', 'werken', 'ernährung und gesundheit', 'sozialwesen'].some((s) => n.startsWith(s))) {

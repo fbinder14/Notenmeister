@@ -2,7 +2,7 @@ import { changePassword as rewrap, createVault, unlockVault, type VaultHeader } 
 import { emptyCore } from '../domain/defaults';
 import type { Core, Data, SchoolClass, SchoolYear } from '../domain/types';
 import { backupFileName, buildBackup, openBackup, parseBackup } from '../storage/backupFile';
-import { ensurePermission, getBackupDir, writeBackup } from '../storage/folderBackup';
+import { chooseBackupDir, ensurePermission, getBackupDir, writeBackup } from '../storage/folderBackup';
 import { getMeta, requestPersistence, STORE_META, wipe, writeAll } from '../storage/idb';
 import { CORE_KEY, loadData, loadHeader, replaceAll, saveChunks, saveHeader } from '../storage/repository';
 import { toast } from './toast.svelte';
@@ -237,6 +237,8 @@ class App {
     this.#key = null;
     this.#header = null;
     this.data = null;
+    this.folderBackup = { name: null, ok: false, lastAt: null };
+    this.lastBackupAt = null;
     this.phase = 'setup';
     location.hash = '#/';
   }
@@ -252,6 +254,22 @@ class App {
 
   async refreshFolderBackup() {
     await this.#initFolderBackup();
+  }
+
+  /**
+   * Lässt einen Sicherungsordner wählen und schreibt sofort die erste Sicherung.
+   * Muss direkt aus einem Klick heraus aufgerufen werden (Ordnerauswahl des Browsers).
+   */
+  async setupFolderBackup(): Promise<'ok' | 'cancelled' | 'failed'> {
+    try {
+      await chooseBackupDir();
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return 'cancelled';
+      console.error(e);
+      return 'failed';
+    }
+    await this.#initFolderBackup();
+    return (await this.#runFolderBackup(true)) ? 'ok' : 'failed';
   }
 
   #scheduleFolderBackup() {

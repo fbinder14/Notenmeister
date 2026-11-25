@@ -6,7 +6,7 @@
   import { validateThresholds } from '../lib/domain/gradeKey';
   import { suggestYear, SUBJECT_COLORS } from '../lib/domain/defaults';
   import { gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
-  import { chooseBackupDir, folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
+  import { folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
   import type { AssessmentType, GradeKey } from '../lib/domain/types';
   import PageHeader from '../ui/PageHeader.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -70,13 +70,9 @@
   }
 
   async function pickFolder() {
-    try {
-      await chooseBackupDir();
-      await app.refreshFolderBackup();
-      if (await app.runFolderBackupNow()) toast.success('Ordner gewählt, erste Sicherung geschrieben.');
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') toast.error((e as Error).message);
-    }
+    const r = await app.setupFolderBackup();
+    if (r === 'ok') toast.success('Ordner gewählt, erste Sicherung geschrieben.');
+    else if (r === 'failed') toast.error('Der Ordner konnte nicht verwendet werden. Bitte einen anderen wählen.');
   }
   async function backupNow() {
     if (await app.runFolderBackupNow()) toast.success('Sicherung in den Ordner geschrieben.');

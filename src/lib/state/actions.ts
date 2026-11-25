@@ -124,7 +124,8 @@ export function addSubject(name: string, short: string): Subject {
   const s: Subject = { id: randomId(), name: name.trim(), short: short.trim() || name.trim().slice(0, 3), color };
   app.core.subjects.push(s);
   app.touch();
-  return s;
+  // Den reaktiven Eintrag zurückgeben, nicht das Rohobjekt – sonst gehen spätere Änderungen verloren.
+  return app.core.subjects[app.core.subjects.length - 1];
 }
 
 export function updateSubject(id: string, patch: Partial<Omit<Subject, 'id'>>) {
@@ -163,7 +164,7 @@ export function addClass(name: string, gradeLevel: number, wpf: WpfGroup): Schoo
   app.classes.push(c);
   app.classes.sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
   app.touch(c.id);
-  return c;
+  return app.classes.find((x) => x.id === c.id)!;
 }
 
 export function updateClass(cls: SchoolClass, patch: Partial<Pick<SchoolClass, 'name' | 'gradeLevel' | 'wpf'>>) {
@@ -336,7 +337,7 @@ export function addCourse(cls: SchoolClass, subjectId: string, weeklyHours: numb
   };
   cls.courses.push(c);
   app.touch(cls.id);
-  return c;
+  return cls.courses[cls.courses.length - 1];
 }
 
 export function updateCourse(cls: SchoolClass, course: Course, patch: Partial<Omit<Course, 'id'>>) {
@@ -362,7 +363,7 @@ export function addAssessment(
   course.assessments.push(item);
   log(cls, { kind: 'assessment_added', courseId: course.id, assessmentId: item.id, typeId: item.typeId, title: item.title });
   app.touch(cls.id);
-  return item;
+  return course.assessments[course.assessments.length - 1];
 }
 
 export function updateAssessment(cls: SchoolClass, course: Course, id: string, patch: Partial<Assessment>) {
