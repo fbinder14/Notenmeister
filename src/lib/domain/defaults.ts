@@ -1,4 +1,5 @@
 import { randomId } from '../crypto/encoding';
+import { bavarianYear } from './calendar';
 import type { AssessmentType, Core, GradeKey, SchoolYear, Subject, WpfGroup } from './types';
 
 /** Vorbelegung nach RSO §§ 17–19, 23 (Fassung gültig ab 01.08.2026). */
@@ -50,9 +51,15 @@ export function defaultGradeKeys(): GradeKey[] {
 export const SUBJECT_COLORS = ['indigo', 'sky', 'emerald', 'amber', 'rose', 'violet', 'teal', 'orange', 'slate'] as const;
 export type SubjectColor = (typeof SUBJECT_COLORS)[number];
 
-/** Schuljahr nach bayerischem Muster: Beginn Mitte September, Halbjahr Mitte Februar, Ende Ende Juli. */
+/**
+ * Schuljahr nach der bayerischen Ferienordnung (mit Ferien und Zeugnisterminen);
+ * außerhalb der hinterlegten Jahre nach Muster: Beginn Mitte September,
+ * Halbjahr Mitte Februar, Ende Ende Juli.
+ */
 export function suggestYear(today = new Date()): SchoolYear {
   const y = today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
+  const table = bavarianYear(y);
+  if (table) return { id: randomId(), ...table };
   return {
     id: randomId(),
     name: `${y}/${String((y + 1) % 100).padStart(2, '0')}`,

@@ -10,7 +10,21 @@ export interface SchoolYear {
   name: string; // z. B. „2026/27“
   start: string; // YYYY-MM-DD
   halfSwitch: string; // erster Tag des 2. Halbjahres
-  end: string; // letzter Unterrichtstag
+  end: string; // letzter Unterrichtstag (Jahreszeugnis)
+  /** Ausgabetag des Zwischenzeugnisses; fehlt in älteren Datenständen (dann gilt `halfSwitch`). */
+  reportDays?: { zwischen?: string };
+  /** Notenschluss je Zeugnis; legt die Schule fest. */
+  reportDeadlines?: { zwischen?: string; jahr?: string };
+  /** Ferien und unterrichtsfreie Tage innerhalb des Schuljahres. */
+  holidays?: Holiday[];
+  /** Schriftliche Abschlussprüfung (Jgst. 10) mit vorgezogenem Notenschluss. */
+  finalExam?: { start: string; end: string; deadline?: string };
+}
+
+export interface Holiday {
+  name: string;
+  start: string; // erster Ferientag
+  end: string; // letzter Ferientag
 }
 
 export interface Subject {
@@ -72,6 +86,18 @@ export interface Settings {
   theme: Theme;
   activeYearId: ID | null;
   defaultGradeKeyId: ID;
+  /** Einrichtungsassistent; fehlt bei Datenständen von vor dem Assistenten (gilt als erledigt). */
+  onboarding?: OnboardingState;
+}
+
+export type OnboardingStep = 'faecher' | 'schuljahr' | 'klassen' | 'unterricht' | 'sicherung' | 'fertig';
+
+export interface OnboardingState {
+  step: OnboardingStep;
+  /** Assistent abgeschlossen oder auf später verschoben. */
+  doneAt?: string;
+  /** Karte „Erste Schritte“ auf der Startseite ausgeblendet. */
+  checklistDismissedAt?: string;
 }
 
 /** Stammdaten und Einstellungen: ein eigener verschlüsselter Block. */
@@ -281,6 +307,8 @@ export interface SchoolClass {
   log?: LogEntry[];
   /** Papierkorb gelöschter Noten; fehlt in älteren Datenständen. */
   trash?: DeletedGrade[];
+  /** Beispielklasse aus dem Einrichtungsassistenten (erfundene Namen). */
+  demo?: boolean;
   createdAt: string;
 }
 
