@@ -13,6 +13,25 @@ Danach `http://127.0.0.1:4317` in Chrome öffnen und über das Installieren-Symb
 
 Die Adresse (inklusive Port 4317) bitte beibehalten: Der Browser ordnet die gespeicherten Daten genau dieser Adresse zu.
 
+### Server automatisch starten (macOS, empfohlen)
+
+`npm start` läuft nur, solange das Terminal offen ist. Damit die App auch am nächsten Tag und nach einem Neustart unter derselben Adresse erreichbar ist, den Server einmalig als Autostart einrichten:
+
+```bash
+npm run autostart:install
+```
+
+Der Server startet dann bei jeder Anmeldung, baut die App dabei neu (Änderungen nach `git pull` sind also automatisch drin) und wird neu gestartet, falls er abstürzt. Protokoll: `~/Library/Logs/Notenmeister.log`.
+
+```bash
+npm run autostart:status      # läuft der Server?
+npm run autostart:uninstall   # Autostart wieder entfernen
+```
+
+Wird der Repo-Ordner verschoben, `npm run autostart:install` im neuen Ordner erneut ausführen. Unter Windows oder Linux den Server über die Aufgabenplanung bzw. systemd beim Anmelden mit `npm start` starten lassen.
+
+**Wichtig:** Immer genau `http://127.0.0.1:4317` verwenden. `localhost:4317` ist für den Browser eine andere Seite – dort erscheint die App leer, weil die Daten unter `127.0.0.1` gespeichert sind.
+
 ## Datenschutz und Sicherheit
 
 - **Verschlüsselung:** AES-256-GCM über die im Browser eingebaute WebCrypto-API. Der Datenschlüssel wird mit einem aus dem Master-Passwort abgeleiteten Schlüssel verpackt (PBKDF2-HMAC-SHA-256, 600.000 Runden, zufälliges Salt). Schlüssel sind nicht exportierbar und liegen nur im Arbeitsspeicher.
