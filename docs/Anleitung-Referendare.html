@@ -135,7 +135,8 @@
     <li>Node.js (LTS) von <code>nodejs.org</code> installieren.</li>
     <li>Quellcode holen: auf GitHub <i>Code → Download ZIP</i> und entpacken – oder <code>git clone https://github.com/fbinder14/Notenmeister.git</code></li>
     <li>Im Terminal (Windows: PowerShell) in den Ordner wechseln: <code>npm install</code>, dann <code>npm start</code></li>
-    <li>In Chrome <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. Danach startet sie auch ohne Terminal. <b>Die Adresse nie ändern</b> – Chrome speichert die Daten genau dort.</li>
+    <li>In Chrome <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. <b>Die Adresse nie ändern</b> – Chrome speichert die Daten genau dort.</li>
+    <li>Mac: einmalig <code>npm run autostart:install</code> – dann startet der Server bei jeder Anmeldung von selbst. Windows: vor der Nutzung <code>npm start</code>.</li>
   </ol>
 
   <h3><span class="num">3.2</span>Variante A: Der Chat führt Sie durch</h3>
@@ -149,7 +150,7 @@ Was bedeutet das, und was genau soll ich als Nächstes tun? Betriebssystem: [Mac
   <h3><span class="num">3.3</span>Variante B: Der Coding-Agent erledigt es</h3>
   <p>Mit Claude Code oder Codex wählen Sie einen leeren Ordner (z.&nbsp;B. „Notenmeister“ in Dokumente) als Arbeitsordner und geben dann ein:</p>
   <div class="prompt"><div class="label">Prompt 3.3 · Installieren und starten <span class="wo">Claude Code / Codex</span></div><div class="text">Klone https://github.com/fbinder14/Notenmeister in diesen Ordner, lies die README und richte die App so ein, wie sie dort beschrieben ist. Prüfe zuerst, ob Node.js installiert ist; falls nicht, sag mir, wie ich es installiere, statt es selbst zu tun.
-Ändere keinen Code und nicht den Port 4317. Starte am Ende die App und sag mir, welche Adresse ich in Chrome öffnen soll.</div></div>
+Ändere keinen Code und nicht den Port 4317. Richte am Ende auf dem Mac den Autostart ein (npm run autostart:install) und sag mir, welche Adresse ich in Chrome öffnen soll.</div></div>
 
 </section>
 
@@ -229,7 +230,8 @@ Schlage zwei bis drei Lösungswege mit Vor- und Nachteilen vor und orientiere di
   <table>
     <tr><th style="width:32%">Befehl</th><th>Wirkung</th></tr>
     <tr><td><code>npm install</code></td><td>Lädt die benötigten Bausteine (einmalig und nach Updates).</td></tr>
-    <tr><td><code>npm start</code></td><td>Baut die App und startet sie unter <code>127.0.0.1:4317</code>.</td></tr>
+    <tr><td><code>npm start</code></td><td>Baut die App und startet sie unter <code>127.0.0.1:4317</code> (läuft, solange das Terminal offen ist).</td></tr>
+    <tr><td><code>npm run autostart:install</code></td><td>Mac: startet den Server künftig bei jeder Anmeldung von selbst; <code>autostart:status</code> prüft, <code>autostart:uninstall</code> entfernt ihn.</td></tr>
     <tr><td><code>npm run dev</code></td><td>Entwicklungsmodus: Änderungen erscheinen sofort im Browser.</td></tr>
     <tr><td><code>npm test</code></td><td>Führt die automatischen Tests aus.</td></tr>
     <tr><td><code>npm run check</code></td><td>Prüft den Code auf Typfehler.</td></tr>
