@@ -1,3 +1,4 @@
+import { deadlineFor, reportDay } from './calendar';
 import { counts, entriesFor, halfOf, needsReplacement, replacementFor, type Ctx } from './grading';
 import type { AssessmentType, Core, Course, Half, Period, SchoolClass, SchoolYear, Student } from './types';
 
@@ -212,10 +213,10 @@ export function courseWarnings(cls: SchoolClass, course: Course, core: Core, yea
     });
   }
 
-  // Fehlende Zeugnisnoten kurz vor den Zeugnisterminen.
+  // Fehlende Zeugnisnoten kurz vor dem Notenschluss (ohne Angabe: vor dem Ausgabetag).
   const terms: Array<{ term: 'zwischen' | 'jahr'; due: string; name: string }> = [
-    { term: 'zwischen', due: year.halfSwitch, name: 'Zwischenzeugnis' },
-    { term: 'jahr', due: year.end, name: 'Jahreszeugnis' },
+    { term: 'zwischen', due: deadlineFor(year, 'zwischen', cls.gradeLevel), name: 'Zwischenzeugnis' },
+    { term: 'jahr', due: deadlineFor(year, 'jahr', cls.gradeLevel), name: 'Jahreszeugnis' },
   ];
   for (const t of terms) {
     const d = days(today, t.due);
@@ -227,7 +228,9 @@ export function courseWarnings(cls: SchoolClass, course: Course, core: Core, yea
       push({
         id: `${course.id}-zeugnis-${t.term}`,
         severity: d < 0 ? 'warn' : 'info',
-        title: `${label}: ${missing.length} Note${missing.length === 1 ? '' : 'n'} fürs ${t.name} fehlen`,
+        title: `${label}: ${missing.length} Note${missing.length === 1 ? '' : 'n'} fürs ${t.name} fehlen${
+          t.due !== reportDay(year, t.term) ? ` (Notenschluss ${new Date(`${t.due}T12:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })})` : ''
+        }`,
         detail: names(missing),
         rule: 'Zeugnisnote',
       });

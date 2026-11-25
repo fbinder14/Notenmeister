@@ -147,6 +147,21 @@ describe('Startseite', () => {
     expect(t.klein.ausstehend).toBe(4); // je Halbjahr ein mündlicher × 2
   });
 
+  it('übernimmt Ausgabetag und Notenschluss aus dem Schulkalender', () => {
+    const plain = missingGrades([cls([course()])], ctx, '2026-11-18')!;
+    expect(plain.date).toBe('2027-02-13');
+    expect(plain.deadline).toBeUndefined();
+
+    const full: SchoolYear = { ...year, halfSwitch: '2027-02-20', reportDays: { zwischen: '2027-02-19' }, reportDeadlines: { zwischen: '2027-02-05' }, finalExam: { start: '2027-06-22', end: '2027-07-02', deadline: '2027-06-15' } };
+    const c = { ...ctx, year: full };
+    const r = missingGrades([cls([course()])], c, '2026-11-18')!;
+    expect(r).toMatchObject({ date: '2027-02-19', deadline: '2027-02-05' });
+    expect(r.examDeadline).toBeUndefined();
+    const k10 = { ...cls([course()]), gradeLevel: 10 };
+    expect(missingGrades([k10], c, '2027-03-01')!.examDeadline).toBe('2027-06-15');
+    expect(missingGrades([cls([course()])], c, '2027-03-01')!.examDeadline).toBeUndefined();
+  });
+
   it('kürzt Lücken auf eine Bezeichnung', () => {
     expect(gapLabel('1. Hj.: 1 von 2 kleinen Leistungsnachweisen')).toEqual({ text: 'kleine Noten fehlen', courseWide: false });
     expect(gapLabel('1 von 3 Schulaufgaben').courseWide).toBe(true);

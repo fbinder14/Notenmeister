@@ -1,3 +1,4 @@
+import { deadlineFor, holidayAt, reportDay } from './calendar';
 import { daysBetween } from './dashboard';
 import { isoWeek } from './rules';
 import type { Assessment, AssessmentType, Core, Course, SchoolClass, SchoolYear } from './types';
@@ -26,6 +27,8 @@ export interface PlanningHint {
   rule?: string;
 }
 
+const fmtDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+
 /** Mindestvorlauf für angekündigte Leistungsnachweise in Tagen. */
 export const ANNOUNCE_DAYS = 7;
 
@@ -50,6 +53,24 @@ export function planningHints(
 
   if (date < today) out.push({ level: 'info', text: 'Das Datum liegt in der Vergangenheit – der Leistungsnachweis gilt als bereits geschrieben.' });
   if (year && (date < year.start || date > year.end)) out.push({ level: 'warn', text: `Das Datum liegt außerhalb des Schuljahres ${year.name}.` });
+  const holiday = holidayAt(year, date);
+  if (holiday) {
+    out.push({ level: 'warn', text: holiday.start === holiday.end ? `${fmt} ist unterrichtsfrei (${holiday.name}).` : `Das Datum liegt in den ${holiday.name}.` });
+  } else if (date >= today && (new Date(`${date}T12:00:00`).getDay() % 6 === 0)) {
+    out.push({ level: 'info', text: `${fmt} ist ein Wochenende.` });
+  }
+  if (year && date >= year.start && date <= year.end) {
+    const term = date < year.halfSwitch ? 'zwischen' : 'jahr';
+    const deadline = deadlineFor(year, term, cls.gradeLevel);
+    const name = term === 'zwischen' ? 'Zwischenzeugnis' : 'Jahreszeugnis';
+    if (date > deadline && deadline !== reportDay(year, term)) {
+      out.push({ level: 'info', text: `Das Datum liegt nach dem Notenschluss (${fmtDay(deadline)}) – die Note zählt nicht mehr fürs ${name}.` });
+    }
+    const exam = year.finalExam;
+    if (cls.gradeLevel === 10 && exam?.start && exam.end && date >= exam.start && date <= exam.end) {
+      out.push({ level: 'warn', text: `In dieser Zeit schreibt die 10. Jahrgangsstufe die Abschlussprüfung (${fmtDay(exam.start)}–${fmtDay(exam.end)}).` });
+    }
+  }
 
   const lead = daysBetween(today, date);
   if (type.announced && date >= today && lead < ANNOUNCE_DAYS) {
