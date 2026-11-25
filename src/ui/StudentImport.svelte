@@ -81,11 +81,23 @@
   const cols = $derived(Math.max(0, ...rows.map((r) => r.length)));
   const preview = $derived(rows.length ? applyMapping(rows, mapping) : []);
   const existing = $derived(new Set(cls.students.map((s) => `${s.lastName}|${s.firstName}`.toLowerCase())));
+  /** Je Vorschauzeile: schon in der Klasse, doppelt in der Liste oder neu. */
+  const dupes = $derived.by(() => {
+    const seen = new Set(existing);
+    return preview.map((p) => {
+      const k = `${p.lastName.trim()}|${p.firstName.trim()}`.toLowerCase();
+      if (existing.has(k)) return 'schon vorhanden';
+      if (seen.has(k)) return 'doppelt';
+      seen.add(k);
+      return '';
+    });
+  });
+  const fresh = $derived(dupes.filter((d) => !d).length);
   const header = $derived(rows[0] ?? []);
   const colLabel = (i: number) => (mapping.hasHeader && header[i] ? header[i] : `Spalte ${String.fromCharCode(65 + i)}`);
 
   $effect(() => {
-    count = source === 'einzeln' ? 0 : preview.length;
+    count = source === 'einzeln' ? 0 : fresh;
   });
 
   function swap() {
@@ -191,11 +203,11 @@
         </thead>
         <tbody>
           {#each preview as p, i (i)}
-            {@const dup = existing.has(`${p.lastName}|${p.firstName}`.toLowerCase())}
+            {@const dup = dupes[i]}
             <tr class="border-t border-slate-100 dark:border-line-dark {dup ? 'text-slate-400' : ''}">
               <td class="px-4 py-1.5 font-medium">{p.lastName}</td>
               <td class="px-4 py-1.5">{p.firstName}</td>
-              <td class="px-4 py-1.5 text-right text-[0.6875rem]">{dup ? 'schon vorhanden' : ''}</td>
+              <td class="px-4 py-1.5 text-right text-[0.6875rem]">{dup}</td>
             </tr>
           {/each}
         </tbody>
@@ -204,9 +216,9 @@
 
     {#if inlineCommit}
       <div class="flex justify-end">
-        <button type="button" class="btn btn-primary" disabled={!preview.length} onclick={() => commit()}>
+        <button type="button" class="btn btn-primary" disabled={!fresh} onclick={() => commit()}>
           <Icon name="check" size={15} />
-          {preview.length} übernehmen
+          {fresh} übernehmen
         </button>
       </div>
     {/if}

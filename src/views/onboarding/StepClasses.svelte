@@ -49,7 +49,8 @@
   }
 
   function imported(c: SchoolClass) {
-    return (n: number, skipped: number) => {
+    return (n: number, skipped: number, source: string) => {
+      if (source === 'einzeln' && !skipped) return; // die Liste darunter zeigt es schon
       toast.success(`${c.name}: ${n} übernommen${skipped ? `, ${skipped} schon vorhanden` : ''}.`);
     };
   }
@@ -72,7 +73,7 @@
   <form class="grid gap-2" onsubmit={add}>
     <div class="flex gap-2">
       <!-- svelte-ignore a11y_autofocus -->
-      <input class="field h-11 flex-1 text-[0.9375rem]" bind:value={input} placeholder="Klasse eingeben, z. B. 8b – oder mehrere: 7a, 8b, 9c" autofocus aria-label="Klassen" />
+      <input class="field h-11 flex-1 text-[0.9375rem]" bind:value={input} placeholder="z. B. 8b – oder mehrere: 7a, 8b, 9c" autofocus aria-label="Klassen" />
       <button class="btn btn-primary h-11 px-5" disabled={!preview.length}><Icon name="plus" size={16} /> {preview.length > 1 ? `${preview.length} Klassen anlegen` : 'Anlegen'}</button>
     </div>
     {#if preview.length}

@@ -72,14 +72,14 @@
 </script>
 
 <div class="grid gap-3">
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <div class="grid max-w-md grid-cols-2 gap-3">
     {#if showName}
       <label><span class="label">Bezeichnung</span><input class="field" bind:value={year.name} onchange={changed} /></label>
     {/if}
     <label><span class="label">Erster Schultag</span><input class="field" type="date" bind:value={year.start} onchange={changed} /></label>
   </div>
 
-  <div class="grid gap-3 sm:grid-cols-2">
+  <div class="grid gap-3 2xl:grid-cols-2">
     <div class="rounded-xl border border-slate-200 p-3 dark:border-line-dark">
       <div class="mb-2 flex items-center gap-2 text-[0.8125rem] font-semibold"><Icon name="award" size={15} class="text-brand-500" /> Zwischenzeugnis</div>
       <div class="grid grid-cols-2 gap-2">
@@ -109,7 +109,7 @@
     </summary>
     <div class="grid gap-2 border-t border-slate-100 px-3 py-3 dark:border-line-dark">
       {#each year.holidays ?? [] as h, i (i)}
-        <div class="grid grid-cols-[1fr_9rem_9rem_auto] items-center gap-2">
+        <div class="grid grid-cols-[minmax(7rem,1fr)_8.5rem_8.5rem_auto] items-center gap-1.5">
           <input class="field h-8" bind:value={h.name} onchange={changed} aria-label="Bezeichnung" />
           <input class="field h-8" type="date" bind:value={h.start} onchange={changed} aria-label="Erster Ferientag" />
           <input class="field h-8" type="date" bind:value={h.end} onchange={changed} aria-label="Letzter Ferientag" />

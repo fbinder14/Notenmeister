@@ -109,7 +109,7 @@
         <div class="h-1 flex-1 rounded-full transition-colors duration-300 {i <= index ? 'bg-brand-500' : 'bg-slate-200 dark:bg-white/10'}"></div>
       {/each}
     </div>
-    <div class="mt-1.5 text-[0.6875rem] text-slate-500">Schritt {index + 1} von {STEPS.length} · {info.title}</div>
+    <div class="mt-1.5 text-[0.6875rem] text-slate-500">{step === 'fertig' ? info.title : `Schritt ${index + 1} von ${last} · ${info.title}`}</div>
   </div>
 
   <div id="onboarding-main" class="relative flex-1 overflow-y-auto">

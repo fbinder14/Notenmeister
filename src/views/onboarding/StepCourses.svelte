@@ -38,7 +38,7 @@
     selected = null;
   }
 
-  const sa = (k: Course) => (k.testModel ? 'Tests' : `${k.plannedSchulaufgaben} SA`);
+  const sa = (k: Course) => (k.testModel ? 'Tests' : k.plannedSchulaufgaben ? `${k.plannedSchulaufgaben} SA` : 'ohne SA');
   const types = $derived(app.core.types.filter((t) => !t.archived));
   const bigWeight = $derived(types.find((t) => t.kind === 'schulaufgabe')?.weight ?? 2);
   const smallWeight = $derived(types.find((t) => t.kind === 'stegreifaufgabe')?.weight ?? 1);
@@ -56,8 +56,6 @@
   </div>
 {:else}
   <div class="grid gap-4">
-    <p class="text-[0.8125rem] text-slate-500">Tippe an, welches Fach du in welcher Klasse unterrichtest. Wochenstunden und Schulaufgaben sind nach Stundentafel und RSO § 18 vorbelegt.</p>
-
     <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-line-dark">
       <table class="w-full border-collapse text-[0.8125rem]">
         <thead>
@@ -84,7 +82,7 @@
                   {#if k}
                     <button
                       type="button"
-                      class="inline-flex min-w-[5.5rem] animate-pop items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[0.71875rem] font-medium tabular-nums text-white shadow-soft transition {SUBJECT_DOT[s.color]} {isSel ? 'ring-2 ring-offset-2 ring-brand-400 dark:ring-offset-panel-dark' : 'hover:brightness-110'}"
+                      class="inline-flex min-w-[6.5rem] animate-pop items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-[0.71875rem] font-medium tabular-nums text-white shadow-soft transition {SUBJECT_DOT[s.color]} {isSel ? 'ring-2 ring-offset-2 ring-brand-400 dark:ring-offset-panel-dark' : 'hover:brightness-110'}"
                       onclick={() => toggle(c, s)}
                       title="Einstellungen für {s.name} in {c.name}"
                     >
@@ -93,7 +91,7 @@
                   {:else}
                     <button
                       type="button"
-                      class="inline-flex h-[1.875rem] min-w-[5.5rem] items-center justify-center rounded-lg border border-dashed border-slate-200 text-slate-300 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 dark:border-line-dark dark:text-slate-600 dark:hover:bg-white/5"
+                      class="inline-flex h-[1.875rem] min-w-[6.5rem] items-center justify-center rounded-lg border border-dashed border-slate-200 text-slate-300 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 dark:border-line-dark dark:text-slate-600 dark:hover:bg-white/5"
                       onclick={() => toggle(c, s)}
                       aria-label="{s.name} in {c.name} hinzufügen"
                     >
