@@ -11,7 +11,10 @@
     "start": "vite build && vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "autostart:install": "bash scripts/autostart-macos.sh install",
+    "autostart:uninstall": "bash scripts/autostart-macos.sh uninstall",
+    "autostart:status": "bash scripts/autostart-macos.sh status"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
