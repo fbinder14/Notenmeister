@@ -37,7 +37,22 @@ export function defaultTypes(): AssessmentType[] {
     t('unterrichtsbeitrag', 'Unterrichtsbeitrag', 'UB', 'klein', 'muendlich', 1, false, false),
     t('praktisch', 'Praktischer Leistungsnachweis', 'Pr', 'klein', 'praktisch', 1, false, false),
     t('gleichwertig', 'Gleichwertiges Prüfungsformat', 'GP', 'klein', 'schriftlich', 1, false, false),
+    // Sport (RSO § 19 Abs. 5; ISB-Empfehlungen zur Leistungsbewertung im Sport 2023): nur in Sportkursen.
+    { ...t('sport_praktisch', 'Sportpraktischer Leistungsnachweis', 'SpL', 'klein', 'praktisch', 1, false, false), scope: 'sport' },
+    { ...t('sport_einsatz', 'Einsatz, Fairness, Kooperation', 'EFK', 'klein', 'praktisch', 1, false, false), scope: 'sport' },
+    { ...t('sport_theorie', 'Kenntnisse / Demonstration mit Erläuterung', 'Th', 'klein', 'muendlich', 1, false, false), scope: 'sport' },
   ];
+}
+
+/**
+ * Trägt fest eingebaute Arten nach, die ein älterer Datenstand noch nicht kennt
+ * (z. B. die Sport-Arten). Vorhandene Arten bleiben unverändert. Liefert true bei Änderung.
+ */
+export function ensureBuiltinTypes(core: Pick<Core, 'types'>): boolean {
+  const have = new Set(core.types.map((t) => t.id));
+  const missing = defaultTypes().filter((t) => !have.has(t.id));
+  core.types.push(...missing);
+  return missing.length > 0;
 }
 
 export function defaultGradeKeys(): GradeKey[] {
@@ -102,7 +117,9 @@ export const SUBJECT_SUGGESTIONS: Array<Pick<Subject, 'name' | 'short'>> = [
   { name: 'Informationstechnologie', short: 'IT' },
   { name: 'Kunst', short: 'Ku' },
   { name: 'Musik', short: 'Mu' },
-  { name: 'Sport', short: 'Sp' },
+  // Getrennt nach Wertungstabelle (ISB-Tabellen für Mädchen und Jungen).
+  { name: 'Sport (Jungen)', short: 'SpJ' },
+  { name: 'Sport (Mädchen)', short: 'SpM' },
 ];
 
 /**

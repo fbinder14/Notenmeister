@@ -1,5 +1,5 @@
 import { changePassword as rewrap, createVault, unlockVault, type VaultHeader } from '../crypto/vault';
-import { emptyCore, suggestYear } from '../domain/defaults';
+import { emptyCore, ensureBuiltinTypes, suggestYear } from '../domain/defaults';
 import { needsOnboarding } from '../domain/onboarding';
 import type { Core, Data, OnboardingStep, SchoolClass, SchoolYear } from '../domain/types';
 import { backupFileName, buildBackup, openBackup, parseBackup } from '../storage/backupFile';
@@ -155,12 +155,15 @@ class App {
   }
 
   #open(header: VaultHeader, key: CryptoKey, data: Data) {
+    // Neue fest eingebaute Arten (z. B. Sport) in ältere Datenstände übernehmen.
+    const migrated = ensureBuiltinTypes(data.core);
     this.#header = header;
     this.#key = key;
     this.data = data;
     this.#lastActivity = Date.now();
     this.phase = 'ready';
     this.saveState = 'idle';
+    if (migrated) this.touch();
   }
 
   /** Sperrt die App: speichert Ausstehendes und entfernt Schlüssel und Daten aus dem Speicher. */

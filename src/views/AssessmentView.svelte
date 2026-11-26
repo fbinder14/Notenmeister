@@ -18,6 +18,9 @@
   import Icon from '../ui/Icon.svelte';
   import Empty from '../ui/Empty.svelte';
   import GradeCell from '../ui/GradeCell.svelte';
+  import SportEntry from '../ui/SportEntry.svelte';
+  import { measureRanges, SPORT_FIELDS } from '../lib/domain/sport';
+  import { app } from '../lib/state/app.svelte';
   import Distribution from '../ui/Distribution.svelte';
   import AssessmentDialog from '../dialogs/AssessmentDialog.svelte';
   import GradeDialog from '../dialogs/GradeDialog.svelte';
@@ -33,9 +36,9 @@
   const students = $derived(cls && course ? courseStudents(cls, course).filter((s) => !s.leftAt) : []);
   const grades = $derived(new Map((course?.grades ?? []).filter((g) => g.assessmentId === assessmentId).map((g) => [g.studentId, g])));
   const values = $derived(
-    [...grades.values()].filter((g) => g.value !== null && g.status !== 'nicht_gewertet' && g.status !== 'nachtermin').map((g) => g.value!),
+    [...grades.values()].filter((g) => g.value !== null && g.status !== 'nicht_gewertet' && g.status !== 'nachtermin' && g.status !== 'befreit').map((g) => g.value!),
   );
-  const missingStudents = $derived(students.filter((s) => !grades.has(s.id)));
+  const missingStudents = $derived(students.filter((s) => !grades.has(s.id) || (a?.sport && grades.get(s.id)!.status === 'gewertet' && grades.get(s.id)!.value === null)));
   const missing = $derived(missingStudents.length);
   const openMakeups = $derived([...grades.values()].filter((g) => g.status === 'nachtermin').length);
   /** Hervorheben erst, wenn mit der Eingabe begonnen wurde – sonst wäre jede Zeile markiert. */
@@ -80,7 +83,8 @@
         <div>
           <h2 class="text-[0.875rem] font-semibold">Sammeleingabe</h2>
           <p class="text-[0.75rem] text-slate-500">
-            {#if a.maxPoints}Punkte eintragen (max. {String(a.maxPoints).replace('.', ',')}), <span class="kbd">↵</span> springt weiter. Die Note wird berechnet.{:else}Ziffer 1–6 tippen – es geht automatisch weiter.{/if}
+            {#if a.sport}Messwerte je Versuch und Teilnoten eintragen – der beste Versuch zählt, die Note wird berechnet. <span class="kbd">↵</span> nächste Zeile, <span class="kbd">Tab</span> nächstes Feld.
+            {:else if a.maxPoints}Punkte eintragen (max. {String(a.maxPoints).replace('.', ',')}), <span class="kbd">↵</span> springt weiter. Die Note wird berechnet.{:else}Ziffer 1–6 tippen – es geht automatisch weiter.{/if}
             <span class="kbd">X</span> = nicht teilgenommen{makeup ? ' (Nachtermin)' : ''}.
           </p>
         </div>
@@ -100,6 +104,9 @@
           </span>
         </div>
       </div>
+      {#if a.sport}
+        <SportEntry {cls} {course} assessment={a} {students} {grades} onopen={(s) => (dlg = { student: s, grade: grades.get(s.id) ?? null, a })} />
+      {:else}
       <table class="w-full text-[0.8125rem]">
         <thead class="text-left text-[0.6875rem] uppercase tracking-wider text-slate-400">
           <tr>
@@ -170,6 +177,7 @@
           {/each}
         </tbody>
       </table>
+      {/if}
     </section>
 
     <aside class="grid content-start gap-6">
@@ -184,7 +192,26 @@
           <dt class="text-slate-500">Kategorie</dt><dd>{t?.category === 'gross' ? 'großer' : 'kleiner'} Leistungsnachweis</dd>
           <dt class="text-slate-500">Gewicht</dt><dd>{a.weight ?? t?.weight ?? 1}-fach</dd>
           <dt class="text-slate-500">Datum</dt><dd>{fmtDate(a.date)}</dd>
+          {#if a.sport}<dt class="text-slate-500">Handlungsfeld</dt><dd>{SPORT_FIELDS[a.sport.field]}</dd>{/if}
         </dl>
+        {#if a.sport}
+          {#each a.sport.parts as p (p.id)}
+            <h3 class="mb-2 mt-4 text-[0.75rem] font-semibold text-slate-500">
+              {p.label}{a.sport.parts.length > 1 ? ` · Gewicht ${String(p.weight).replace('.', ',')}` : ''}{p.kind === 'note' ? ' · Note 1–6' : ''}
+            </h3>
+            {#if p.kind !== 'note'}
+              <div class="grid grid-cols-3 gap-1.5">
+                {#each measureRanges(p) as r (r.grade)}
+                  <div class="rounded-lg px-2 py-1.5 text-center ring-1 ring-inset {GRADE_CLASS[r.grade]}">
+                    <div class="text-[0.8125rem] font-semibold">{r.grade}</div>
+                    <div class="text-[0.65625rem] tabular-nums opacity-80">{r.text}</div>
+                  </div>
+                {/each}
+              </div>
+              {#if p.kind === 'fortschritt'}<p class="mt-2 text-[0.6875rem] text-slate-500">Note = (Eingangstest + Ausgangstest + 3 × Verbesserungsnote) / 5, nie schlechter als die bessere Testnote (ISB 2023). Rundung: {app.core.settings.rounding === 'mild' ? 'mild' : 'streng'}.</p>{/if}
+            {/if}
+          {/each}
+        {/if}
         {#if a.maxPoints}
           <h3 class="mb-2 mt-4 text-[0.75rem] font-semibold text-slate-500">Notenschlüssel „{key.name}“</h3>
           <div class="grid grid-cols-3 gap-1.5">

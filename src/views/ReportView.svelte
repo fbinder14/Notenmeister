@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { app } from '../lib/state/app.svelte';
-  import { entriesFor, formatAvg, summarize, suggestGrade, type Ctx } from '../lib/domain/grading';
+  import { entriesFor, formatAvg, gradeDate, halfOf, summarize, suggestGrade, type Ctx } from '../lib/domain/grading';
   import { courseStudents, findClass, findCourse, setReportGrade, subjectOf, yearOf } from '../lib/state/actions';
   import { href } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
@@ -28,7 +28,11 @@
       ? students.map((s) => {
           const sum = summarize(entriesFor(course, s.id, ctx, period));
           const set = course.reportGrades.find((r) => r.studentId === s.id && r.term === term);
-          return { s, sum, suggestion: suggestGrade(sum.total, app.core.settings.rounding), set };
+          // Sport: Nachweise mit Befreiung (Attest) im Zeitraum.
+          const exempt = course.grades.filter(
+            (g) => g.studentId === s.id && g.status === 'befreit' && (period === 'jahr' || halfOf(gradeDate(g, course.assessments.find((a) => a.id === g.assessmentId)), ctx.year) === period),
+          ).length;
+          return { s, sum, suggestion: suggestGrade(sum.total, app.core.settings.rounding), set, exempt };
         })
       : [],
   );
@@ -75,7 +79,14 @@
         <tbody>
           {#each rows as r (r.s.id)}
             <tr class="border-t border-slate-100 dark:border-line-dark {r.s.leftAt ? 'opacity-50' : ''}">
-              <td class="px-5 py-2 font-medium">{r.s.lastName}, <span class="font-normal text-slate-500">{r.s.firstName}</span></td>
+              <td class="px-5 py-2 font-medium">
+                {r.s.lastName}, <span class="font-normal text-slate-500">{r.s.firstName}</span>
+                {#if r.exempt}
+                  <div class="text-[0.6875rem] font-normal {r.sum.total === null ? 'text-sky-700 dark:text-sky-300' : 'text-slate-500'}">
+                    {r.sum.total === null ? 'Befreit: Bemerkung statt Note (RSO § 31 Abs. 6)' : `${r.exempt}× befreit – reichen die Leistungsnachweise für eine Note?`}
+                  </div>
+                {/if}
+              </td>
               <td class="px-2 py-2 text-center font-semibold tabular-nums">{formatAvg(r.sum.total)}</td>
               <td class="px-2 py-2 text-center">
                 {#if r.suggestion}<span class="inline-grid h-6 w-6 place-items-center rounded-md text-[0.75rem] font-bold ring-1 ring-inset {GRADE_CLASS[r.suggestion]}">{r.suggestion}</span>{/if}

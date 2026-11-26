@@ -1,5 +1,6 @@
 import { deadlineFor, reportDay } from './calendar';
-import { counts, entriesFor, halfOf, needsReplacement, replacementFor, type Ctx } from './grading';
+import { counts, entriesFor, gradeDate, halfOf, needsReplacement, replacementFor, type Ctx } from './grading';
+import { isSportCourse, SPORT_FIELDS } from './sport';
 import type { AssessmentType, Core, Course, Half, Period, SchoolClass, SchoolYear, Student } from './types';
 
 export type Severity = 'warn' | 'info';
@@ -52,7 +53,10 @@ export function studentCompleteness(course: Course, studentId: string, ctx: Ctx,
   for (const h of halves) {
     const pre = period === 'jahr' ? `${h}. Hj.: ` : '';
     const small = entriesFor(course, studentId, ctx, h).filter((e) => e.category === 'klein');
-    if (!course.testModel && small.length < minSmall) missing.push(`${pre}${small.length} von ${minSmall} kleinen Leistungsnachweisen`);
+    if (!course.testModel && small.length < minSmall) {
+      const exempt = course.grades.some((g) => g.studentId === studentId && g.status === 'befreit' && halfOf(gradeDate(g, course.assessments.find((a) => a.id === g.assessmentId)), ctx.year) === h);
+      missing.push(`${pre}${small.length} von ${minSmall} kleinen Leistungsnachweisen${exempt ? ' (befreit – ggf. Bemerkung statt Note, RSO § 31 Abs. 6)' : ''}`);
+    }
     if (oral && !small.some((e) => e.mode === 'muendlich')) missing.push(`${pre}mündlicher Leistungsnachweis fehlt`);
     let ungraded = 0;
     let replace = 0;
@@ -61,7 +65,7 @@ export function studentCompleteness(course: Course, studentId: string, ctx: Ctx,
       const g = course.grades.find((x) => x.assessmentId === a.id && x.studentId === studentId);
       if (needsReplacement(g)) {
         if (!replacementFor(course, a.id, studentId)) replace++;
-      } else if (!g || (g.status !== 'nicht_gewertet' && !counts(g))) ungraded++;
+      } else if (!g || (g.status !== 'nicht_gewertet' && g.status !== 'befreit' && !counts(g))) ungraded++;
     }
     if (ungraded) missing.push(`${pre}${ungraded} Leistungsnachweis${ungraded === 1 ? '' : 'e'} ohne Note`);
     if (replace) missing.push(`${pre}${replace} Ersatznote${replace === 1 ? '' : 'n'} offen`);
@@ -145,6 +149,23 @@ export function courseWarnings(cls: SchoolClass, course: Course, core: Core, yea
         detail: `Betrifft ${missingOral.length} von ${students.length}: ${names(missingOral)}.`,
         rule: course.testModel ? 'RSO § 18 Abs. 3 Satz 2' : 'RSO § 19 Abs. 6 Satz 3',
       });
+    }
+  }
+
+  // Sport: Nachweise aus mindestens zwei Handlungsfeldern je Halbjahr (Empfehlung des ISB 2023).
+  if (isSportCourse(course, core.subjects)) {
+    for (const h of halves) {
+      if (today < h.start || (today < h.end && days(today, h.end) > 42)) continue;
+      const fields = new Set(course.assessments.filter((a) => a.sport && halfOf(a.date, year) === h.half && a.date <= today).map((a) => a.sport!.field));
+      if (fields.size === 1) {
+        push({
+          id: `${course.id}-felder-${h.half}`,
+          severity: 'info',
+          title: `${label}: sportpraktische Nachweise im ${h.half}. Halbjahr nur aus einem Handlungsfeld`,
+          detail: `Bisher nur ${SPORT_FIELDS[[...fields][0]]}. Empfohlen sind je Halbjahr Nachweise aus zwei Sportlichen Handlungsfeldern.`,
+          rule: 'ISB-Empfehlung Sport 2023',
+        });
+      }
     }
   }
 

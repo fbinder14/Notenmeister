@@ -70,6 +70,20 @@ Fassung der Realschulordnung gültig ab 01.08.2026.
 - Status je Note: gewertet, Nachtermin offen (§ 22), Note 6 bei unentschuldigtem Versäumnis oder Verweigerung (§ 21 Abs. 4) oder Unterschleif (§ 21 Abs. 2), nicht gewertet.
 - Hinweise bei: weniger als zwei kleinen Nachweisen pro Halbjahr oder fehlender mündlicher Note (§ 19 Abs. 6), falscher Anzahl Schulaufgaben (§ 18 Abs. 1), mehreren angekündigten Nachweisen an einem Tag, mehr als drei pro Woche oder einer Stegreifaufgabe am Schulaufgabentag (§ 17 Abs. 3), Schulaufgaben ohne doppeltes Gewicht (§ 23 Abs. 2), offenen Nachterminen und fehlenden Zeugnisnoten vor dem Notenschluss. Bei der Terminplanung zusätzlich Hinweise auf Ferien, Wochenenden, Termine nach dem Notenschluss und – für 10. Klassen – den Zeitraum der Abschlussprüfung.
 
+## Sport
+
+Ist ein Fach als Sport erkannt (Name beginnt mit „Sport“, z. B. „Sport (Jungen)“ oder „Sport (Mädchen)“), gilt ein eigenes Profil:
+
+- **Keine Schulaufgaben, kein Vorrückungsfach** (RSO § 18 Abs. 1, § 25 Abs. 1; abwählbar). Je Halbjahr mindestens zwei praktische Leistungsnachweise (§ 19 Abs. 5, 6); Hinweis, wenn sie nur aus einem Handlungsfeld stammen (ISB-Empfehlung 2023).
+- **Eigene Arten**, nur in Sportkursen: sportpraktischer Leistungsnachweis (vorausgewählt), Einsatz/Fairness/Kooperation, Kenntnisse/Demonstration mit Erläuterung. Schriftliche Arten werden dort nicht angeboten. Ältere Datenstände erhalten die Arten beim Entsperren automatisch.
+- **Wertungstabelle je Fach** (Jungen/Mädchen), wählbar im Einrichtungsassistenten oder unter „Unterricht bearbeiten“.
+- **Bewertung eines Nachweises** nach Vorlage, frei anpassbar: Messwert (Zeit, Weite, Höhe, Anzahl; mehrere Versuche, der beste zählt), Technik + Leistung, Leistungsfortschritt oder Teilnoten nach Kriterien. Die Note wird aus den gewichteten Teilen berechnet (Rundung wie beim Zeugnisvorschlag).
+- **Grenzwerte** aus den ISB-Orientierungstabellen 2023 (Leichtathletik und Schwimmen, Jgst. 5–10, `src/lib/domain/sportTables.ts`). Sie sind unverbindlich, werden beim Anlegen kopiert und lassen sich je Nachweis ändern; die Noten werden dann neu berechnet.
+- **Leistungsfortschritt** nach ISB: (Note Eingangstest + Note Ausgangstest + 3 × Verbesserungsnote) / 5, Verbesserung ab 5/4/3/2/1 % → Note 1–5, nie schlechter als die bessere Testnote.
+- **Status „befreit“** (Attest): keine Note, kein fehlender Nachweis; in der Zeugnisübersicht der Hinweis auf die Bemerkung statt Note (§ 31 Abs. 6).
+
+Eine Handy-Version für die Erfassung in der Halle ist vorgesehen, aber noch nicht umgesetzt.
+
 ## Entwicklung
 
 ```bash

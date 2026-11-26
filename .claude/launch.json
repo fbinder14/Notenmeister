@@ -40,6 +40,23 @@
       ],
       "port": 4327,
       "url": "http://127.0.0.1:4327"
+    },
+    {
+      "name": "notenmeister-sport",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--outDir",
+        "node_modules/.sport-preview",
+        "--port",
+        "4329",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 4329,
+      "url": "http://127.0.0.1:4329"
     }
   ]
 }

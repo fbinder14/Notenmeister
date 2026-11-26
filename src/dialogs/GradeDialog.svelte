@@ -6,7 +6,10 @@
   import {
     addSingleGrade,
     allowsMakeup,
+    courseDefaultType,
+    courseTypes,
     fmtDateTime,
+    isSport,
     fmtShortDate,
     fromLocalInput,
     removeGrade,
@@ -29,7 +32,7 @@
     course,
     student,
     grade = null,
-    defaultTypeId = 'typ-rechenschaftsablage',
+    defaultTypeId = '',
     onclose,
     forAssessment = null,
     replaces = null,
@@ -68,12 +71,19 @@
   let performed = $state('');
 
   const assessment = $derived(grade?.assessmentId ? course.assessments.find((a) => a.id === grade!.assessmentId) : forAssessment);
-  const types = $derived(app.core.types.filter((t) => !t.archived));
+  const types = $derived.by(() => {
+    const list = courseTypes(course, 'single');
+    // Eine bestehende Note behält ihre Art, auch wenn sie hier sonst nicht angeboten wird.
+    const own = grade?.typeId ? app.core.types.find((t) => t.id === grade!.typeId) : undefined;
+    return own && !list.includes(own) ? [own, ...list] : list;
+  });
   const type = $derived(app.core.types.find((t) => t.id === typeId));
   /** Nachtermin nur anbieten, wenn die Art nachgeholt wird (nicht z. B. bei Stegreifaufgaben). */
   const statusOptions = $derived(
     Object.entries(STATUS_LABEL).filter(
-      ([k]) => k !== 'nachtermin' || grade?.status === 'nachtermin' || allowsMakeup(assessment ? typeById(assessment.typeId) : type),
+      ([k]) =>
+        (k !== 'nachtermin' || grade?.status === 'nachtermin' || allowsMakeup(assessment ? typeById(assessment.typeId) : type)) &&
+        (k !== 'befreit' || grade?.status === 'befreit' || isSport(course)),
     ),
   );
 
@@ -83,7 +93,7 @@
     status = grade?.status ?? 'gewertet';
     comment = grade?.comment ?? '';
     title = grade?.title ?? (replaces ? `Ersatz für ${replaces.title || typeById(replaces.typeId)?.short || 'Leistungsnachweis'}` : '');
-    typeId = grade?.typeId ?? defaultTypeId;
+    typeId = grade?.typeId ?? (defaultTypeId || courseDefaultType(course, 'single'));
     weight = grade?.weight ?? null;
     performed = toLocalInput(grade?.performedAt ?? new Date().toISOString());
   });

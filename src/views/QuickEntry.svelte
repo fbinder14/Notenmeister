@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app } from '../lib/state/app.svelte';
-  import { addSingleGrade, courseStudents, findClass, findCourse, fmtShortDate, fromLocalInput, subjectOf, todayIso, yearOf } from '../lib/state/actions';
+  import { addSingleGrade, courseDefaultType, courseStudents, courseTypes, findClass, findCourse, fmtShortDate, fromLocalInput, subjectOf, todayIso, yearOf } from '../lib/state/actions';
   import { formatAvg, halfOf, weightedAverage } from '../lib/domain/grading';
   import { go, href } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
@@ -15,8 +15,11 @@
   const course = $derived(findCourse(cls, courseId));
   const students = $derived(cls && course ? courseStudents(cls, course).filter((s) => !s.leftAt) : []);
 
-  const types = $derived(app.core.types.filter((t) => !t.archived && t.category === 'klein'));
-  let typeId = $state('typ-rechenschaftsablage');
+  const types = $derived(course ? courseTypes(course, 'quick') : []);
+  let typeId = $state('');
+  $effect(() => {
+    if (course && !types.some((t) => t.id === typeId)) typeId = courseDefaultType(course, 'quick');
+  });
   let title = $state('');
   /** Leer: jede Note bekommt den Zeitpunkt, zu dem sie eingetippt wurde. */
   let when = $state('');

@@ -12,6 +12,7 @@
     removeNote,
     startObservation,
     STATUS_LABEL,
+    sportDetail,
     studentGradeRows,
     subjectOf,
     toLocalInput,
@@ -182,7 +183,10 @@
               {#each list(c) as row (row.g.id)}
                 <tr class="border-t border-slate-100 first:border-t-0 dark:border-line-dark">
                   <td class="w-24 px-5 py-1.5 tabular-nums text-slate-500">{fmtDate(row.date)}</td>
-                  <td class="px-2 py-1.5">{row.name}</td>
+                  <td class="px-2 py-1.5">
+                    {row.name}
+                    {#if row.g.sport}<div class="text-[0.6875rem] text-slate-500">{sportDetail(row.g, c.assessments.find((x) => x.id === row.g.assessmentId))}</div>{/if}
+                  </td>
                   <td class="w-16 px-2 py-1.5 text-center text-[0.75rem] text-slate-400">×{row.weight}</td>
                   <td class="w-14 px-2 py-1.5 text-center"><GradeBadge value={row.g.value} status={row.g.status} size="sm" /></td>
                   <td class="px-5 py-1.5 text-[0.75rem] text-slate-500">

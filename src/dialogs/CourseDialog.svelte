@@ -1,7 +1,9 @@
 <script lang="ts">
   import Modal from '../ui/Modal.svelte';
   import { app } from '../lib/state/app.svelte';
-  import { addCourse, addSubject, sortStudents, updateCourse } from '../lib/state/actions';
+  import { addCourse, addSubject, sortStudents, updateCourse, updateSubject } from '../lib/state/actions';
+  import { isSportName, sportGroupFromName, SPORT_GROUP_LABEL } from '../lib/domain/sport';
+  import type { SportGroup } from '../lib/domain/types';
   import { plannedSchulaufgabenFor, SUBJECT_SUGGESTIONS, weeklyHoursFor } from '../lib/domain/defaults';
   import { go, href } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
@@ -17,6 +19,8 @@
   let planned = $state(0);
   let testModel = $state(false);
   let excluded = $state<string[]>([]);
+  /** Sport: Wertungstabelle des Fachs (gilt für alle Klassen mit diesem Fach). */
+  let group = $state<SportGroup | ''>('');
 
   $effect(() => {
     if (!open) return;
@@ -36,6 +40,16 @@
   const suggestion = $derived(subjectName ? plannedSchulaufgabenFor(subjectName, cls.gradeLevel, cls.wpf) : null);
 
   const hoursSuggestion = $derived(subjectName ? weeklyHoursFor(subjectName, cls.gradeLevel, cls.wpf) : null);
+  const sport = $derived(isSportName(subjectName) || (subjectId !== '__new' && app.core.subjects.find((s) => s.id === subjectId)?.sport !== undefined));
+
+  // Sport: kein Vorrückungsfach (RSO § 25 Abs. 1), Wertungstabelle aus dem Fach bzw. Namen.
+  $effect(() => {
+    if (!course) promotion = !sport;
+  });
+  $effect(() => {
+    const s = app.core.subjects.find((x) => x.id === subjectId);
+    group = (s ? s.sport : sportGroupFromName(newSubject)) ?? '';
+  });
 
   $effect(() => {
     if (!course && suggestion !== null) planned = suggestion;
@@ -55,6 +69,10 @@
     if (sid === '__new') {
       if (!newSubject.trim()) return;
       sid = addSubject(newSubject, newShort).id;
+    }
+    if (sport) {
+      const s = app.core.subjects.find((x) => x.id === sid);
+      if (s && (s.sport ?? '') !== group) updateSubject(sid, { sport: group || undefined });
     }
     if (course) {
       updateCourse(cls, course, {
@@ -100,12 +118,26 @@
       </div>
     {/if}
 
+    {#if sport}
+      <div>
+        <span class="label">Wertungstabelle</span>
+        <div class="flex gap-1.5">
+          {#each [['m', SPORT_GROUP_LABEL.m], ['w', SPORT_GROUP_LABEL.w], ['', 'ohne Tabelle']] as [v, l] (v)}
+            <button type="button" class="btn h-8 flex-1 {group === v ? 'btn-primary' : 'btn-soft'}" onclick={() => (group = v as SportGroup | '')}>{l}</button>
+          {/each}
+        </div>
+        <p class="mt-1.5 text-[0.75rem] text-slate-500">Für Messwerte (Zeiten, Weiten, Höhen) schlägt der Notenmeister die Grenzen aus den ISB-Orientierungstabellen vor. Gilt für alle Klassen mit diesem Fach.</p>
+      </div>
+    {/if}
+
     <div class="grid grid-cols-2 gap-3">
-      <label><span class="label">Wochenstunden</span><input class="field" type="number" min="1" max="10" bind:value={hours} /></label>
+      <label class={sport ? 'col-span-2' : ''}><span class="label">Wochenstunden</span><input class="field" type="number" min="1" max="10" bind:value={hours} /></label>
+      {#if !sport}
       <label>
         <span class="label">Soll-Anzahl Schulaufgaben</span>
         <input class="field" type="number" min="0" max="6" bind:value={planned} disabled={testModel} />
       </label>
+      {/if}
     </div>
     {#if hoursSuggestion !== null || (suggestion !== null && !testModel)}
       <p class="-mt-2 text-[0.75rem] text-slate-500">
@@ -116,10 +148,14 @@
 
     <div class="grid gap-2">
       <label class="flex items-center gap-2.5 text-[0.8125rem]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={promotion} /> Vorrückungsfach</label>
+      {#if sport}
+        <p class="text-[0.75rem] text-slate-500">Sport: keine Schulaufgaben; je Halbjahr mindestens zwei praktische Leistungsnachweise (RSO § 19 Abs. 5, 6), empfohlen aus zwei Handlungsfeldern. Vorrückungsfach nur, wenn das an deiner Schule so gilt.</p>
+      {:else}
       <label class="flex items-start gap-2.5 text-[0.8125rem]">
         <input type="checkbox" class="mt-0.5 h-4 w-4 accent-brand-600" bind:checked={testModel} />
         <span>Schulaufgaben und Stegreifaufgaben durch angesagte Tests ersetzt <span class="text-slate-500">(Beschluss der Lehrerkonferenz, RSO § 18 Abs. 3)</span></span>
       </label>
+      {/if}
     </div>
 
     {#if cls.students.length}

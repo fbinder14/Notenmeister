@@ -4,7 +4,7 @@
   import { daysBetween, relativeDays } from '../../lib/domain/dashboard';
   import { isoWeek } from '../../lib/domain/rules';
   import { nextAssessmentTitle, planningHints, upcomingAppointments } from '../../lib/domain/schedule';
-  import { addAssessment, fmtShortDate, removeAssessment, subjectOf, typeById, yearOf } from '../../lib/state/actions';
+  import { addAssessment, courseDefaultType, courseTypes, fmtShortDate, removeAssessment, subjectOf, typeById, yearOf } from '../../lib/state/actions';
   import { href } from '../../lib/state/router.svelte';
   import { toast } from '../../lib/state/toast.svelte';
   import type { SchoolClass } from '../../lib/domain/types';
@@ -39,9 +39,7 @@
     classes.flatMap((cls) => cls.courses.map((course) => ({ key: `${cls.id}/${course.id}`, cls, course, label: `${cls.name} · ${subjectOf(course)?.name ?? ''}` }))),
   );
   const picked = $derived(courses.find((c) => c.key === courseKey));
-  const types = $derived(
-    app.core.types.filter((t) => !t.archived && (t.mode === 'schriftlich' || t.kind === 'praktisch' || t.kind === 'referat' || t.kind === 'gleichwertig')),
-  );
+  const types = $derived(picked ? courseTypes(picked.course, 'assessment') : []);
   const type = $derived(types.find((t) => t.id === typeId));
   const suggestion = $derived(picked && type ? nextAssessmentTitle(picked.course, type) : '');
   const hints = $derived(
@@ -68,8 +66,7 @@
 
   function defaultType(key: string): string {
     const c = courses.find((x) => x.key === key);
-    const preferred = c?.course.testModel ? 'typ-angesagter_test' : 'typ-schulaufgabe';
-    return types.some((t) => t.id === preferred) ? preferred : (types[0]?.id ?? '');
+    return c ? courseDefaultType(c.course, 'assessment') : '';
   }
 
   $effect(() => {
