@@ -57,10 +57,12 @@
       <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"><Icon name="eye" size={14} stroke={2} /></span>
       <div class="min-w-0">
         <div class="truncate text-[0.8125rem] font-semibold text-slate-900 dark:text-white">{student!.lastName}, {student!.firstName}</div>
-        <div class="flex items-center gap-1.5 truncate text-[0.71875rem] text-slate-500">
+        <div class="flex items-center gap-1.5 text-[0.71875rem] text-slate-500">
           <span class="h-1.5 w-1.5 shrink-0 rounded-full {SUBJECT_DOT[s?.color ?? 'slate']}"></span>
-          {cls.name} {s?.short} · {stats.count} Eintr{stats.count === 1 ? 'ag' : 'äge'} · seit {fmtShortDate(since)}
-          {#if idle >= STALE_DAYS}<span class="text-amber-600 dark:text-amber-400">· {idle} Tage ohne Eintrag</span>{/if}
+          <span class="min-w-0 truncate">
+            {cls.name} {s?.short} · {stats.count} Eintr{stats.count === 1 ? 'ag' : 'äge'} · seit {fmtShortDate(since)}
+            {#if idle >= STALE_DAYS}<span class="text-amber-600 dark:text-amber-400">· {idle} Tage ohne Eintrag</span>{/if}
+          </span>
         </div>
       </div>
       <div class="flex flex-col items-end gap-0.5">

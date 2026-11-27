@@ -36,8 +36,9 @@
   });
 </script>
 
-<div class="relative shrink-0" style="width: {size}px; height: {size}px" role="img" aria-label={label}>
-  <svg width={size} height={size} viewBox="0 0 {size} {size}" class="-rotate-90">
+<!-- `size` ist die Höchstgröße: In schmalen Spalten schrumpft der Ring mit, statt die Spalte aufzuweiten. -->
+<div class="relative aspect-square w-full" style="max-width: {size}px" role="img" aria-label={label}>
+  <svg viewBox="0 0 {size} {size}" class="block h-full w-full -rotate-90">
     <circle cx={size / 2} cy={size / 2} {r} fill="none" stroke-width={thickness} class="stroke-slate-100 dark:stroke-white/10" />
     {#each arcs as a, i (i)}
       <circle

@@ -26,11 +26,12 @@
 </script>
 
 <section>
-  <div class="flex min-h-7 items-center gap-2 {open ? 'mb-3' : ''}">
+  <!-- flex-wrap: In schmalen Spalten rutschen die Aktionen (z. B. „Verbergen") unter die Überschrift. -->
+  <div class="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 {open ? 'mb-3' : ''}">
     <h2 class="flex-1 text-[0.8125rem] font-semibold uppercase tracking-wider text-slate-400">
       <button
         type="button"
-        class="group -ml-1 inline-flex items-center gap-1.5 rounded-md px-1 uppercase tracking-wider transition hover:text-slate-600 dark:hover:text-slate-200"
+        class="group -ml-1 inline-flex items-center gap-1.5 rounded-md px-1 text-left uppercase tracking-wider transition hover:text-slate-600 dark:hover:text-slate-200"
         aria-expanded={open}
         title={open ? 'Einklappen' : 'Ausklappen'}
         onclick={() => collapsed.toggle(id)}
@@ -42,7 +43,7 @@
         {/if}
       </button>
     </h2>
-    {#if open && actions}{@render actions()}{/if}
+    {#if open && actions}<div class="ml-auto flex items-center gap-2">{@render actions()}</div>{/if}
   </div>
   {#if open}{@render children()}{/if}
 </section>

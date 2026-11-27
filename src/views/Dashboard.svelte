@@ -42,25 +42,27 @@
 
 <PageHeader title={greeting} eyebrow={new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} />
 
-<div class="mx-auto grid max-w-6xl gap-6 px-8 py-7">
+<div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-8 py-7">
   <GettingStarted {classes} {onnewclass} />
   {#if !classes.length}
     <Empty icon="users" title="Noch keine Klassen" text="Lege deine erste Klasse an und füge Schülerinnen und Schüler sowie deine Fächer hinzu.">
       <button class="btn btn-primary" onclick={onnewclass}><Icon name="plus" size={15} /> Klasse anlegen</button>
     </Empty>
   {:else}
-    <div class="grid gap-4">
+    <div class="grid grid-cols-1 gap-4">
       {#if year}<YearBar {year} {today} />{/if}
       <QuickActions {classes} {ctx} />
     </div>
 
-    <div class="grid items-start gap-7 lg:grid-cols-[1.4fr_1fr]">
-      <div class="grid gap-7">
+    <!-- minmax(0, …): Spalten dürfen schmaler werden als ihr Inhalt, sonst läuft die Seite bei kleinen Fenstern rechts über. -->
+    <div class="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div class="grid grid-cols-1 gap-7">
         <Appointments {classes} {today} />
         <PendingGrades {classes} {today} />
         <Logbook {classes} />
         <Widget id="unterrichte" title="Meine Unterrichte" badge={recent.length || null}>
-          <div class="grid gap-3 sm:grid-cols-2">
+          <!-- Zweispaltig nur, wenn die Spalte breit genug ist – nicht abhängig von der Fensterbreite. -->
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(min(100%,14rem),1fr))] gap-3">
             {#each recent as { cls, course, last } (course.id)}
               {@const s = subjectOf(course)}
               {@const g = SUBJECT_GRADIENT[s?.color ?? 'slate'] ?? SUBJECT_GRADIENT.slate}
@@ -73,7 +75,7 @@
                     <Icon name="chevron" size={16} class="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
                   </div>
                   <div class="mt-1 truncate text-[0.9375rem] font-semibold text-slate-900 dark:text-white" title="{cls.name} · {s?.name}">{cls.name} · {s?.name}{#if cls.demo}<span class="ml-2 align-middle rounded-full bg-amber-100 px-1.5 py-px text-[0.625rem] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Beispiel</span>{/if}</div>
-                  <div class="mt-2 flex gap-3 text-[0.75rem] text-slate-500">
+                  <div class="mt-2 flex flex-wrap gap-x-3 text-[0.75rem] text-slate-500">
                     <span>{course.assessments.length} Leistungsnachweise</span>
                     <span>{course.grades.length} Noten</span>
                   </div>
@@ -87,7 +89,7 @@
         </Widget>
       </div>
 
-      <div class="grid gap-7">
+      <div class="grid grid-cols-1 gap-7">
         {#if ctx}<ReportCountdown {classes} {ctx} {today} />{/if}
         <ObservationsPanel {classes} />
         <MakeupsPanel {classes} {today} />
