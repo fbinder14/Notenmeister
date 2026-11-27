@@ -7,7 +7,8 @@
   import { suggestYear, SUBJECT_COLORS } from '../lib/domain/defaults';
   import { fmtDate, gradeKeyChangeCount, gradeKeyUsage, removeGradeKey, removeSubject, subjectInUse, updateSubject } from '../lib/state/actions';
   import { folderBackupSupported, forgetBackupDir, KEEP } from '../lib/storage/folderBackup';
-  import type { AssessmentType, GradeKey } from '../lib/domain/types';
+  import type { AssessmentType, GradeKey, SportGroup } from '../lib/domain/types';
+  import { isSportSubject, sportGroupFromName, SPORT_GROUP_LABEL } from '../lib/domain/sport';
   import PageHeader from '../ui/PageHeader.svelte';
   import Icon from '../ui/Icon.svelte';
   import Modal from '../ui/Modal.svelte';
@@ -15,6 +16,12 @@
   import { SUBJECT_DOT } from '../ui/colors';
   import { fontScale, FONT_SCALE_OPTIONS } from '../lib/state/fontScale.svelte';
   import YearEditor from '../ui/YearEditor.svelte';
+
+  /** Umbenennen; nennt der neue Name Jungen/Mädchen, wird die Sport-Wertungstabelle mitgezogen. */
+  function renameSubject(id: string, name: string) {
+    const group = sportGroupFromName(name);
+    updateSubject(id, group ? { name, sport: group } : { name });
+  }
 
   const core = $derived(app.core);
   const s = $derived(app.core.settings);
@@ -272,8 +279,15 @@
                       <button class="h-4 w-4 rounded-full transition {SUBJECT_DOT[c]} {sub.color === c ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-panel-dark' : 'opacity-40 hover:opacity-100'}" onclick={() => updateSubject(sub.id, { color: c })} aria-label="Farbe {c}"></button>
                     {/each}
                   </div>
-                  <input class="field h-8 flex-1" value={sub.name} onchange={(e) => updateSubject(sub.id, { name: (e.target as HTMLInputElement).value })} />
+                  <input class="field h-8 flex-1" value={sub.name} onchange={(e) => renameSubject(sub.id, (e.target as HTMLInputElement).value)} />
                   <input class="field h-8 w-20" value={sub.short} onchange={(e) => updateSubject(sub.id, { short: (e.target as HTMLInputElement).value })} />
+                  {#if isSportSubject(sub)}
+                    <select class="field h-8 w-28 shrink-0" aria-label="Wertungstabelle" title="Wertungstabelle für Messwerte (ISB-Orientierungstabellen)" value={sub.sport ?? ''} onchange={(e) => updateSubject(sub.id, { sport: ((e.target as HTMLSelectElement).value || undefined) as SportGroup | undefined })}>
+                      <option value="m">{SPORT_GROUP_LABEL.m}</option>
+                      <option value="w">{SPORT_GROUP_LABEL.w}</option>
+                      <option value="">ohne Tabelle</option>
+                    </select>
+                  {/if}
                   <button class="btn btn-ghost h-8 w-8 px-0 text-rose-600" disabled={subjectInUse(sub.id)} title={subjectInUse(sub.id) ? 'Wird in einem Unterricht verwendet' : 'Löschen'} onclick={() => removeSubject(sub.id)}><Icon name="trash" size={14} /></button>
                 </div>
               {/each}
