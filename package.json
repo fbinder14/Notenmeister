@@ -1,7 +1,7 @@
 {
   "name": "notenmeister",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "description": "Lokale, verschlüsselte Notenverwaltung für bayerische Realschulen",
   "scripts": {
@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "autostart:install": "bash scripts/autostart-macos.sh install",
     "autostart:uninstall": "bash scripts/autostart-macos.sh uninstall",
-    "autostart:status": "bash scripts/autostart-macos.sh status"
+    "autostart:status": "bash scripts/autostart-macos.sh status",
+    "update": "node scripts/update.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

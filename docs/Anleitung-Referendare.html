@@ -73,7 +73,7 @@
   <div class="band">
     <div class="reihe">Handbuch für Referendarinnen und Referendare</div>
     <h1>Notenmeister<br>mit KI einrichten und anpassen</h1>
-    <div class="unter">Installation, erste Schritte und Anpassung an das eigene Fach – mit erprobten Prompts für ChatGPT und Claude</div>
+    <div class="unter">Installation, erste Schritte, Anpassung an das eigene Fach und Updates – mit Prompts für ChatGPT und Claude</div>
   </div>
   <div class="inhalt">
     <h3>Inhalt</h3>
@@ -82,7 +82,8 @@
       <li><span>2</span>Mit KI arbeiten: Werkzeuge und Regeln</li>
       <li><span>3</span>Installation mit KI-Unterstützung</li>
       <li><span>4</span>Erste Schritte in der App</li>
-      <li><span>5</span>Anpassen an das eigene Fach (Beispiel Sport)</li>
+      <li><span>5</span>Anpassen an das eigene Fach</li>
+      <li><span>6</span>Updates einspielen</li>
       <li><span>A</span>Spickzettel: Befehle und Dateien</li>
     </ol>
   </div>
@@ -128,30 +129,29 @@
     <div><div class="nr">Kapitel 3</div><h2>Installation mit KI-Unterstützung</h2></div>
     <img src="schullogo.png" alt="">
   </div>
-  <p class="lead">Einmalig, ca. 15 Minuten. Sie brauchen Chrome, Node.js (LTS-Version) und den Quellcode.</p>
+  <p class="lead">Einmalig, ca. 15 Minuten. Sie brauchen Chrome, Node.js und Git.</p>
 
   <h3><span class="num">3.1</span>Der Weg in Kürze</h3>
   <ol>
-    <li>Node.js (LTS) von <code>nodejs.org</code> installieren.</li>
-    <li>Quellcode holen: auf GitHub <i>Code → Download ZIP</i> und entpacken – oder <code>git clone https://github.com/fbinder14/Notenmeister.git</code></li>
-    <li>Im Terminal (Windows: PowerShell) in den Ordner wechseln: <code>npm install</code>, dann <code>npm start</code></li>
-    <li>In Chrome <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. <b>Die Adresse nie ändern</b> – Chrome speichert die Daten genau dort.</li>
-    <li>Mac: einmalig <code>npm run autostart:install</code> – dann startet der Server bei jeder Anmeldung von selbst. Windows: vor der Nutzung <code>npm start</code>.</li>
+    <li><b>Node.js</b> (LTS) von <code>nodejs.org</code> und <b>Git</b> von <code>git-scm.com</code> installieren.</li>
+    <li>Im Terminal (Windows: PowerShell): <code>git clone https://github.com/fbinder14/Notenmeister.git</code>, <code>cd Notenmeister</code>, <code>npm install</code>, <code>npm start</code>.</li>
+    <li>In Chrome genau <code>http://127.0.0.1:4317</code> öffnen und über das Installieren-Symbol in der Adressleiste als App installieren. Danach startet die App auch ohne laufenden Server.</li>
+    <li>Mac (empfohlen): einmalig <code>npm run autostart:install</code> – der Server startet dann bei jeder Anmeldung von selbst.</li>
   </ol>
+  <div class="note achtung"><span class="t">Wichtig</span>Immer <code>127.0.0.1:4317</code> verwenden – nie <code>localhost</code> und nie einen anderen Port. Anderswo erscheint die App leer. „Download ZIP“ statt <code>git clone</code> erlaubt keine Updates.</div>
 
   <h3><span class="num">3.2</span>Variante A: Der Chat führt Sie durch</h3>
-  <div class="prompt"><div class="label">Prompt 3.1 · Installation anleiten <span class="wo">ChatGPT / Claude – Chat</span></div><div class="text">Ich bin Lehrkraft und keine Programmiererin/kein Programmierer. Ich möchte die Web-App „Notenmeister“ von https://github.com/fbinder14/Notenmeister auf meinem [Mac / Windows-Laptop] installieren.
-Führe mich Schritt für Schritt durch. Gib mir immer nur EINEN Schritt, erkläre kurz, was er bewirkt, und warte auf meine Rückmeldung, bevor du weitermachst.</div></div>
+  <div class="prompt"><div class="label">Prompt 3.1 · Installation anleiten <span class="wo">ChatGPT / Claude – Chat</span></div><div class="text">Ich bin Lehrkraft und keine Programmiererin/kein Programmierer. Ich möchte die Web-App „Notenmeister“ von https://github.com/fbinder14/Notenmeister auf meinem [Mac / Windows-Laptop] installieren (Node.js, Git, „git clone“, „npm install“, „npm start“, dann http://127.0.0.1:4317 in Chrome als App installieren).
+Führe mich Schritt für Schritt durch. Gib mir immer nur EINEN Schritt, erkläre kurz, was er bewirkt, und warte auf meine Rückmeldung.</div></div>
 
   <div class="prompt"><div class="label">Prompt 3.2 · Fehlermeldung deuten <span class="wo">Chat</span></div><div class="text">Beim Installieren des Notenmeisters habe ich den Befehl [Befehl] ausgeführt und folgende Meldung bekommen:
 [komplette Fehlermeldung hier einfügen]
 Was bedeutet das, und was genau soll ich als Nächstes tun? Betriebssystem: [Mac / Windows].</div></div>
 
   <h3><span class="num">3.3</span>Variante B: Der Coding-Agent erledigt es</h3>
-  <p>Mit Claude Code oder Codex wählen Sie einen leeren Ordner (z.&nbsp;B. „Notenmeister“ in Dokumente) als Arbeitsordner und geben dann ein:</p>
-  <div class="prompt"><div class="label">Prompt 3.3 · Installieren und starten <span class="wo">Claude Code / Codex</span></div><div class="text">Klone https://github.com/fbinder14/Notenmeister in diesen Ordner, lies die README und richte die App so ein, wie sie dort beschrieben ist. Prüfe zuerst, ob Node.js installiert ist; falls nicht, sag mir, wie ich es installiere, statt es selbst zu tun.
-Ändere keinen Code und nicht den Port 4317. Richte am Ende auf dem Mac den Autostart ein (npm run autostart:install) und sag mir, welche Adresse ich in Chrome öffnen soll.</div></div>
-
+  <p>Mit Claude Code oder Codex wählen Sie einen Ordner (z.&nbsp;B. Dokumente) als Arbeitsordner und geben ein:</p>
+  <div class="prompt"><div class="label">Prompt 3.3 · Installieren und starten <span class="wo">Claude Code / Codex</span></div><div class="text">Klone https://github.com/fbinder14/Notenmeister in diesen Ordner, lies die README und richte die App so ein, wie sie dort beschrieben ist. Prüfe zuerst, ob Node.js und Git installiert sind; falls nicht, sag mir, wie ich sie installiere, statt es selbst zu tun.
+Ändere keinen Code und nicht den Port 4317. Richte auf dem Mac den Autostart ein (npm run autostart:install) und sag mir am Ende, welche Adresse ich in Chrome öffnen soll.</div></div>
 </section>
 
 <!-- ========================= Kapitel 4 ========================= -->
@@ -160,20 +160,18 @@ Was bedeutet das, und was genau soll ich als Nächstes tun? Betriebssystem: [Mac
     <div><div class="nr">Kapitel 4</div><h2>Erste Schritte in der App</h2></div>
     <img src="schullogo.png" alt="">
   </div>
-  <p class="lead">Vom Master-Passwort bis zur Zeugnisnote – in sieben Schritten.</p>
+  <p class="lead">Ein Einrichtungsassistent führt durch den Start – danach geht es im Notenbuch weiter.</p>
   <ol>
     <li><b>Master-Passwort</b> festlegen. Es gibt keine Wiederherstellung: Passwort vergessen bedeutet Daten verloren.</li>
-    <li><b>Einstellungen → Schuljahre:</b> Beginn, Halbjahreswechsel und Ende prüfen.</li>
-    <li><b>Klasse anlegen</b> und Namensliste einfügen (aus Excel kopieren oder CSV/XLSX importieren).</li>
-    <li>In der Klasse einen <b>Unterricht</b> hinzufügen. Wochenstunden und Zahl der Schulaufgaben werden nach Stundentafel vorgeschlagen.</li>
-    <li><b>Leistungsnachweis</b> anlegen (Art, Datum, ggf. Höchstpunktzahl und Notenschlüssel) und Noten per Sammeleingabe erfassen.</li>
-    <li><b>Einzelnoten</b> wie Rechenschaftsablage oder Unterrichtsbeitrag über die Schnellerfassung eintragen; für Unterrichtsbeiträge lassen sich über mehrere Stunden <b>Beobachtungen</b> sammeln.</li>
-    <li>Am Halbjahresende unter <b>Zeugnis</b> die Noten setzen. Die App macht nur einen Vorschlag – die Entscheidung liegt bei Ihnen.</li>
+    <li>Der <b>Einrichtungsassistent</b> fragt nacheinander: Fächer, Schuljahr mit Ferien und Zeugnisterminen (Notenschluss mit dem Terminplan der Schule abgleichen), Klassen und Schülerlisten (aus Excel einfügen oder CSV/XLSX importieren; auf Wunsch eine Beispielklasse), Unterricht und Sicherung. Jeder Schritt lässt sich überspringen und später unter <i>Einstellungen › Unterricht › Einrichtungsassistent</i> nachholen.</li>
+    <li>Im Unterricht einen <b>Leistungsnachweis</b> anlegen (Art, Datum, ggf. Höchstpunktzahl und Notenschlüssel) und Noten per <b>Sammeleingabe</b> erfassen.</li>
+    <li>Einzelnoten wie Rechenschaftsablage oder Unterrichtsbeitrag über <b>Mündliche Noten</b> eintragen; für Unterrichtsbeiträge lassen sich über mehrere Stunden <b>Beobachtungen</b> sammeln.</li>
+    <li>Am Halbjahresende unter <b>Zeugnisnoten</b> die Noten setzen. Die App macht nur einen Vorschlag – die Entscheidung liegt bei Ihnen.</li>
   </ol>
 
   <h3><span class="num">4.1</span>Sicherung und Datenschutz</h3>
   <ul>
-    <li><b>Sicherung regelmäßig exportieren</b> (Einstellungen → Daten und Sicherheit). Am besten die automatische Sicherung in einen Ordner aktivieren.</li>
+    <li><b>Sicherung regelmäßig exportieren</b> (Einstellungen › Daten und Sicherheit). Am besten die automatische Sicherung in einen Ordner aktivieren.</li>
     <li>Die App sperrt sich nach einiger Zeit ohne Eingabe; manuell mit <b>⌘L</b> bzw. <b>Strg+L</b>.</li>
     <li><b>Ausdrucke und PDFs sind nicht verschlüsselt.</b> Die Datenschutzvorgaben der Schule gelten weiterhin.</li>
   </ul>
@@ -190,34 +188,55 @@ Erkläre mir an einem erfundenen Beispiel mit drei Schülern, wie daraus eine Ja
     <div><div class="nr">Kapitel 5</div><h2>Anpassen an das eigene Fach</h2></div>
     <img src="schullogo.png" alt="">
   </div>
-  <p class="lead">Am Beispiel Sport: erst die Einstellungen nutzen, dann den Code erweitern.</p>
+  <p class="lead">Erst prüfen, was schon da ist – dann Einstellungen, dann Code.</p>
 
   <h3><span class="num">5.1</span>Stufe 1: Ohne Programmieren</h3>
   <ul>
-    <li>Fach <b>Sport</b> wählen, Schulaufgaben auf <b>0</b> setzen; unter <b>Notenschlüssel</b> eigene Prozentgrenzen anlegen.</li>
-    <li><b>Einstellungen → Unterricht → Eigene Art:</b> z.&nbsp;B. „Leichtathletik“, „Geräteturnen“, „Ballspiel“ anlegen (Form <i>praktisch</i>, Kategorie <i>klein</i>, Gewicht nach Absprache mit der Fachschaft).</li>
+    <li><b>Schon eingebaut:</b> die RSO-Regeln aller Fächer und ein eigenes Profil für <b>Sport</b> („Sport (Jungen)“ / „Sport (Mädchen)“ mit Messwerten und ISB-Tabellen).</li>
+    <li><b>Einstellungen › Unterricht › Eigene Art:</b> fachtypische Leistungsnachweise (Gewicht nach Absprache mit der Fachschaft).</li>
+    <li>Eigene <b>Notenschlüssel</b>; Schulaufgaben und Wochenstunden unter <i>Unterricht bearbeiten</i>.</li>
   </ul>
 
   <h3><span class="num">5.2</span>Stufe 2: Eigene Kopie des Codes</h3>
   <ol>
-    <li>GitHub-Konto anlegen und das Repository <b>forken</b> (Schaltfläche <i>Fork</i>). Das Original bleibt unverändert.</li>
-    <li>Die eigene Kopie wie in Prompt 3.3 klonen lassen, mit Ihrer Fork-Adresse. <b>Vorher eine Sicherung exportieren:</b> Entwicklungs- und Normalbetrieb teilen sich dieselben Daten.</li>
+    <li>GitHub-Konto anlegen und das Repository <b>forken</b> (Schaltfläche <i>Fork</i>). Ihre Kopie klonen Sie wie in Prompt 3.3 mit Ihrer Fork-Adresse.</li>
+    <li><b>Vor dem Experimentieren:</b> Sicherung exportieren und auf dem Mac <code>npm run autostart:uninstall</code>: <code>npm run dev</code> braucht denselben Port und nutzt dieselben Daten. Danach Autostart wieder einrichten.</li>
   </ol>
 
   <h3><span class="num">5.3</span>Der bewährte Ablauf in vier Prompts</h3>
-  <p>Arbeiten Sie in kleinen Schritten: eine Änderung, testen, in der App ausprobieren. Mit <i>„Committe die Änderungen“</i> sichert der Agent jeden funktionierenden Stand.</p>
-  <div class="prompt"><div class="label">Prompt 5.1 · Überblick verschaffen <span class="wo">Claude Code / Codex</span></div><div class="text">Lies die README und verschaffe dir einen Überblick über dieses Projekt. Erkläre mir in einfachen Worten, wie es aufgebaut ist und wo die Leistungsnachweisarten, die Notenberechnung und die RSO-Hinweise stehen. Ändere noch nichts.</div></div>
+  <p><code>[Fach]</code> und <code>[Wunsch]</code> ersetzen, in kleinen Schritten arbeiten; mit <i>„Committe die Änderungen“</i> sichert der Agent jeden funktionierenden Stand.</p>
+  <div class="prompt"><div class="label">Prompt 5.1 · Überblick verschaffen <span class="wo">Claude Code / Codex</span></div><div class="text">Lies die README und verschaffe dir einen Überblick über dieses Projekt. Erkläre mir in einfachen Worten, wie es aufgebaut ist und was es für das Fach [Fach] schon kann. Ändere noch nichts.</div></div>
 
-  <div class="prompt"><div class="label">Prompt 5.2 · Plan für das eigene Fach <span class="wo">Claude Code / Codex</span></div><div class="text">Ich unterrichte Sport an einer bayerischen Realschule. Ich möchte:
-1. die Leistungsnachweisarten „Leichtathletik“, „Geräteturnen“ und „Ballspiel“ fest einbauen (praktisch, klein, Gewicht 1),
-2. dass im Fach Sport kein Hinweis auf fehlende mündliche Noten erscheint.
-Mach zuerst einen Plan: Welche Dateien änderst du, was genau, und welche Tests ergänzt du? Warte auf meine Freigabe.</div></div>
+  <div class="prompt"><div class="label">Prompt 5.2 · Plan für das eigene Fach <span class="wo">Claude Code / Codex</span></div><div class="text">Ich unterrichte [Fach] an einer bayerischen Realschule. Ich möchte: [Wunsch, z. B. eigene Leistungsnachweisarten fest einbauen / einen Hinweis für mein Fach ändern / Teilnoten nach Kriterien].
+Prüfe zuerst, ob das schon über die Einstellungen geht. Wenn nicht: Mach einen Plan – welche Dateien änderst du, was genau, welche Tests ergänzt du? Warte auf meine Freigabe.</div></div>
 
   <div class="prompt"><div class="label">Prompt 5.3 · Umsetzen und prüfen <span class="wo">Claude Code / Codex</span></div><div class="text">Der Plan passt. Setze ihn um, ergänze Tests und führe „npm test“ und „npm run check“ aus. Erkläre mir danach jede Änderung in zwei, drei Sätzen.</div></div>
 
-  <div class="prompt"><div class="label">Prompt 5.4 · Größeres Vorhaben: Leistungstabellen <span class="wo">Claude Code / Codex</span></div><div class="text">Ich möchte im Sport Messwerte (z. B. Weitsprung in Metern, 50-m-Lauf in Sekunden) per Tabelle in Noten umrechnen, getrennt nach Jahrgangsstufe und Geschlecht. Die Tabellen will ich selbst in den Einstellungen pflegen.
-Schlage zwei bis drei Lösungswege mit Vor- und Nachteilen vor und orientiere dich an der vorhandenen Notenschlüssel-Logik. Noch nichts programmieren.</div></div>
+  <div class="prompt"><div class="label">Prompt 5.4 · Größeres Vorhaben <span class="wo">Claude Code / Codex</span></div><div class="text">Für [Fach] möchte ich [größerer Wunsch]. Orientiere dich daran, wie das Fach Sport eingebaut ist (src/lib/domain/sport.ts). Schlage zwei bis drei Lösungswege mit Vor- und Nachteilen vor. Noch nichts programmieren.</div></div>
+</section>
 
+<!-- ========================= Kapitel 6 ========================= -->
+<section class="kapitel">
+  <div class="kopf">
+    <div><div class="nr">Kapitel 6</div><h2>Updates einspielen</h2></div>
+    <img src="schullogo.png" alt="">
+  </div>
+  <p class="lead">Neue Versionen erscheinen als Release auf GitHub. Ihre Daten bleiben dabei in Chrome erhalten.</p>
+
+  <h3><span class="num">6.1</span>Von neuen Versionen erfahren</h3>
+  <p>Auf <code>github.com/fbinder14/Notenmeister</code> oben <i>Watch › Custom › Releases</i> wählen – dann kommt bei jeder neuen Version eine E-Mail. Was sich geändert hat, steht in <code>CHANGELOG.md</code>. Ihre Version steht unten in den Einstellungen.</p>
+
+  <h3><span class="num">6.2</span>In drei Schritten aktualisieren</h3>
+  <ol>
+    <li><b>Sicherung exportieren</b> (Einstellungen › Daten und Sicherheit).</li>
+    <li>Im Terminal im Notenmeister-Ordner: <code>npm run update</code> – holt die neue Version, baut neu und startet auf dem Mac den Autostart neu. Ohne Autostart danach <code>npm start</code>.</li>
+    <li>In der App einmal <b>sperren und entsperren</b> – dann ist die neue Version aktiv.</li>
+  </ol>
+  <div class="note"><span class="t">Gut zu wissen</span>Bricht <code>npm run update</code> mit dem Hinweis auf eigene Änderungen ab, haben Sie den Code angepasst (Kapitel 5). Dann hilft Prompt 6.2. Wer per ZIP installiert hat, holt den Notenmeister einmal neu mit <code>git clone</code> – die Daten bleiben erhalten.</div>
+
+  <div class="prompt"><div class="label">Prompt 6.1 · Update begleiten <span class="wo">Claude Code / Codex</span></div><div class="text">Führe im Notenmeister-Ordner „npm run update“ aus. Wenn es Fehler gibt, erkläre sie mir und schlage eine Lösung vor, bevor du etwas änderst. Fasse mir am Ende zusammen, was laut CHANGELOG.md neu ist.</div></div>
+
+  <div class="prompt"><div class="label">Prompt 6.2 · Updates in eigene Anpassungen übernehmen <span class="wo">Claude Code / Codex</span></div><div class="text">Mein Projekt ist ein Fork von https://github.com/fbinder14/Notenmeister mit eigenen Änderungen. Hole die neueste Version aus dem Original (als Remote „upstream“) und führe sie mit meinen Änderungen zusammen. Zeig mir vorher, was sich ändert, und frag bei Konflikten nach. Danach „npm test“ und „npm run update“ ausführen.</div></div>
 </section>
 
 <!-- ========================= Anhang ========================= -->
@@ -229,34 +248,32 @@ Schlage zwei bis drei Lösungswege mit Vor- und Nachteilen vor und orientiere di
 
   <table>
     <tr><th style="width:32%">Befehl</th><th>Wirkung</th></tr>
-    <tr><td><code>npm install</code></td><td>Lädt die benötigten Bausteine (einmalig und nach Updates).</td></tr>
-    <tr><td><code>npm start</code></td><td>Baut die App und startet sie unter <code>127.0.0.1:4317</code> (läuft, solange das Terminal offen ist).</td></tr>
-    <tr><td><code>npm run autostart:install</code></td><td>Mac: startet den Server künftig bei jeder Anmeldung von selbst; <code>autostart:status</code> prüft, <code>autostart:uninstall</code> entfernt ihn.</td></tr>
-    <tr><td><code>npm run dev</code></td><td>Entwicklungsmodus: Änderungen erscheinen sofort im Browser.</td></tr>
-    <tr><td><code>npm test</code></td><td>Führt die automatischen Tests aus.</td></tr>
-    <tr><td><code>npm run check</code></td><td>Prüft den Code auf Typfehler.</td></tr>
+    <tr><td><code>npm install</code></td><td>Lädt die benötigten Bausteine.</td></tr>
+    <tr><td><code>npm start</code></td><td>Baut die App und startet den Server unter <code>127.0.0.1:4317</code> (läuft, solange das Terminal offen ist).</td></tr>
+    <tr><td><code>npm run update</code></td><td>Neue Version holen, bauen, Server neu starten.</td></tr>
+    <tr><td><code>npm run autostart:install</code></td><td>Mac: Server startet bei jeder Anmeldung; <code>autostart:status</code> prüft, <code>autostart:uninstall</code> entfernt ihn.</td></tr>
+    <tr><td><code>npm run dev</code></td><td>Entwicklungsmodus (vorher Autostart entfernen): Änderungen erscheinen sofort.</td></tr>
+    <tr><td><code>npm test</code> · <code>npm run check</code></td><td>Automatische Tests · Typprüfung.</td></tr>
   </table>
 
   <table>
     <tr><th style="width:38%">Datei / Ordner</th><th>Inhalt</th></tr>
     <tr><td><code>src/lib/domain/defaults.ts</code></td><td>Vorbelegte Leistungsnachweisarten, Notenschlüssel, Fächer, Schulaufgaben-Anzahl, Stundentafel</td></tr>
     <tr><td><code>src/lib/domain/rules.ts</code></td><td>Hinweise nach RSO</td></tr>
-    <tr><td><code>src/lib/domain/grading.ts</code></td><td>Durchschnitte und Jahresfortgangsnote</td></tr>
-    <tr><td><code>src/lib/domain/gradeKey.ts</code></td><td>Punkte → Note</td></tr>
-    <tr><td><code>src/views/</code>, <code>src/dialogs/</code></td><td>Seiten und Dialoge der Oberfläche</td></tr>
-    <tr><td><code>tests/</code></td><td>Automatische Tests</td></tr>
+    <tr><td><code>src/lib/domain/grading.ts</code> · <code>gradeKey.ts</code></td><td>Durchschnitte, Jahresfortgangsnote · Punkte → Note</td></tr>
+    <tr><td><code>src/lib/domain/sport.ts</code> · <code>sportTables.ts</code></td><td>Sport-Profil und ISB-Tabellen – Vorbild für eigene Fächer</td></tr>
+    <tr><td><code>src/lib/domain/onboarding.ts</code> · <code>calendar.ts</code></td><td>Einrichtungsassistent · Ferien und Termine</td></tr>
+    <tr><td><code>src/views/</code>, <code>src/dialogs/</code>, <code>src/ui/</code></td><td>Seiten, Dialoge und Bausteine der Oberfläche</td></tr>
+    <tr><td><code>tests/</code> · <code>CHANGELOG.md</code></td><td>Automatische Tests · Liste der Änderungen je Version</td></tr>
   </table>
 
-  <h3><span class="num">A.1</span>Neue Version des Originals übernehmen</h3>
-  <div class="prompt"><div class="label">Prompt A.1 · Updates einspielen <span class="wo">Claude Code / Codex</span></div><div class="text">Mein Projekt ist ein Fork von https://github.com/fbinder14/Notenmeister. Hole die neuesten Änderungen aus dem Original und führe sie mit meinen eigenen Änderungen zusammen. Zeig mir vorher, was sich ändert, und frag bei Konflikten nach. Danach „npm test“ ausführen.</div></div>
-
-  <h3><span class="num">A.2</span>Checkliste vor dem Experimentieren</h3>
+  <h3><span class="num">A.1</span>Checkliste vor dem Experimentieren</h3>
   <ul class="check">
     <li>Sicherung exportiert?</li>
     <li>Nur erfundene Namen in Tests, Screenshots und Prompts?</li>
     <li>Plan der KI gelesen und verstanden?</li>
     <li><code>npm test</code> erfolgreich?</li>
-    <li>Änderungen an Vorbelegungen gelten nur für <b>neu eingerichtete</b> Datenbestände – bestehende in den Einstellungen anpassen.</li>
+    <li>Geänderte Vorbelegungen gelten nur für <b>neu eingerichtete</b> Datenbestände – bestehende in den Einstellungen anpassen.</li>
   </ul>
 
   <div class="note"><span class="t">Kontakt</span>Fragen, Fehler und gute Ideen gern an Franz Binder – gelungene Anpassungen können in den Notenmeister für alle einfließen.</div>
