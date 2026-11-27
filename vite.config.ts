@@ -3,6 +3,9 @@ import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+const { version: APP_VERSION } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 const PORT = 4317;
 
@@ -80,6 +83,7 @@ self.addEventListener('fetch', (e) => {
 
 export default defineConfig({
   base: './',
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [tailwindcss(), svelte(), cspPlugin(), serviceWorkerPlugin()],
   server: { port: PORT, strictPort: true, host: '127.0.0.1' },
   preview: { port: PORT, strictPort: true, host: '127.0.0.1' },

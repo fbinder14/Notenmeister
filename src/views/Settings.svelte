@@ -433,7 +433,7 @@
     {/if}
   </section>
 
-  <p class="pb-4 text-center text-[0.6875rem] text-slate-400">Notenmeister 2.0 · keine Netzwerkverbindungen · keine Telemetrie</p>
+  <p class="pb-4 text-center text-[0.6875rem] text-slate-400">Notenmeister {__APP_VERSION__} · keine Netzwerkverbindungen · keine Telemetrie</p>
 </div>
 
 <Modal bind:open={importOpen} title="Sicherung importieren" width="max-w-md">

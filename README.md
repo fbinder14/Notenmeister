@@ -32,6 +32,14 @@ Wird der Repo-Ordner verschoben, `npm run autostart:install` im neuen Ordner ern
 
 **Wichtig:** Immer genau `http://127.0.0.1:4317` verwenden. `localhost:4317` ist für den Browser eine andere Seite – dort erscheint die App leer, weil die Daten unter `127.0.0.1` gespeichert sind.
 
+## Aktualisieren
+
+```bash
+npm run update
+```
+
+Vorher eine Sicherung exportieren. Der Befehl holt die neue Version (`git pull --ff-only`), installiert (`npm ci`) und baut neu, startet unter macOS den Autostart neu und zeigt die Änderungen aus [CHANGELOG.md](CHANGELOG.md). Danach die App einmal sperren und entsperren; die Versionsnummer steht unten in den Einstellungen. Bei einer Kopie mit eigenen Code-Änderungen bricht der Befehl ab – dann die Änderungen des Originals per Merge übernehmen. Mit ZIP heruntergeladene Kopien lassen sich nicht aktualisieren; einmal per `git clone` neu holen (die Daten bleiben in Chrome erhalten).
+
 ## Erster Start
 
 Nach dem Festlegen des Master-Passworts führt ein Einrichtungsassistent in wenigen Minuten durch:
@@ -92,6 +100,19 @@ npm test        # Unit-Tests: Kryptografie, Notenlogik, RSO-Regeln, Import
 npm run check   # Typprüfung
 npm run build   # Produktions-Build nach dist/
 ```
+
+### Neue Version veröffentlichen
+
+1. Änderungen wie gewohnt über Branch und Pull Request nach `main` bringen. `main` ist immer der lauffähige Stand, den `npm run update` holt.
+2. Version in `package.json` erhöhen (`npm version minor --no-git-tag-version`; Fehlerbehebungen `patch`) und einen Abschnitt in `CHANGELOG.md` schreiben – in der Sprache der Lehrkräfte, mit Hinweis, falls Daten beim Entsperren umgebaut werden.
+3. Nach dem Merge taggen und als Release veröffentlichen:
+
+```bash
+git tag v2.1.0 && git push origin v2.1.0
+gh release create v2.1.0 --title "Notenmeister 2.1.0" --notes "Siehe CHANGELOG.md"
+```
+
+Wer auf GitHub „Watch › Custom › Releases“ aktiviert, wird über neue Versionen benachrichtigt. Die App selbst kann wegen `connect-src 'none'` nicht nach Updates suchen.
 
 Technik: Vite, Svelte 5, TypeScript, Tailwind CSS 4. Keine Laufzeit-Abhängigkeiten außer Svelte.
 
