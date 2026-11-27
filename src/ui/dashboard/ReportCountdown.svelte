@@ -123,17 +123,20 @@
           {@const s = subjectOf(course)}
           {@const g = missingOf(gross)}
           {@const k = missingOf(klein)}
-          <a href={href.report(cls.id, course.id)} class="flex items-center gap-2 px-4 py-2.5 transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
-            <span class="h-1.5 w-1.5 shrink-0 rounded-full {SUBJECT_DOT[s?.color ?? 'slate']}"></span>
-            <span class="min-w-0 flex-1 truncate text-[0.8125rem] font-medium">{cls.name} · {s?.name}</span>
+          <!-- Bei schmaler Spalte rutschen die Zähler rechtsbündig in eine zweite Zeile, statt den Kursnamen zu verdrängen. -->
+          <a href={href.report(cls.id, course.id)} class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 px-4 py-2.5 transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
+            <span class="flex min-w-0 flex-1 basis-40 items-center gap-2">
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full {SUBJECT_DOT[s?.color ?? 'slate']}"></span>
+              <span class="min-w-0 flex-1 truncate text-[0.8125rem] font-medium" title="{cls.name} · {s?.name}">{cls.name} · {s?.name}</span>
+            </span>
             {#if g || k}
-              <span class="text-[0.71875rem] tabular-nums text-slate-500" title="Fehlende Noten bei großen und kleinen Leistungsnachweisen">
+              <span class="whitespace-nowrap text-[0.71875rem] tabular-nums text-slate-500" title="Fehlende Noten bei großen und kleinen Leistungsnachweisen">
                 {#if g}<b class="font-semibold text-slate-700 dark:text-slate-200">{g}</b> groß{/if}{#if g && k} · {/if}{#if k}<b class="font-semibold text-slate-700 dark:text-slate-200">{k}</b> klein{/if}
               </span>
             {:else}
-              <span class="text-[0.71875rem] font-medium text-emerald-600 dark:text-emerald-400">vollständig</span>
+              <span class="whitespace-nowrap text-[0.71875rem] font-medium text-emerald-600 dark:text-emerald-400">vollständig</span>
             {/if}
-            <span class="w-12 text-right text-[0.6875rem] tabular-nums text-slate-400" title="Schülerinnen und Schüler mit allen nötigen Noten">{complete}/{total}</span>
+            <span class="w-12 shrink-0 text-right text-[0.6875rem] tabular-nums text-slate-400" title="Schülerinnen und Schüler mit allen nötigen Noten">{complete}/{total}</span>
           </a>
         {/each}
         {#if r.courses.length > PAGE}
