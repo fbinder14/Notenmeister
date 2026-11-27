@@ -1,7 +1,23 @@
 import { randomId } from '../crypto/encoding';
 import { addDays, holidayAt, weekday } from './calendar';
 import { plannedSchulaufgabenFor, SUBJECT_SUGGESTIONS, weeklyHoursFor } from './defaults';
-import type { Assessment, Course, Grade, GradeValue, OnboardingStep, SchoolClass, SchoolYear, Settings, Student, WpfGroup } from './types';
+import { isSportName, measurePart, notePart, sportOutcome } from './sport';
+import { disciplineById } from './sportTables';
+import type {
+  Assessment,
+  Course,
+  Grade,
+  GradeValue,
+  OnboardingStep,
+  SchoolClass,
+  SchoolYear,
+  Settings,
+  SportGroup,
+  SportResult,
+  SportSpec,
+  Student,
+  WpfGroup,
+} from './types';
 
 /** Einrichtungsassistent: reine Logik ohne Oberfläche. */
 
@@ -88,6 +104,8 @@ export const needsWpf = (gradeLevel: number) => gradeLevel >= 7;
 export interface CourseDefaults {
   weeklyHours: number;
   plannedSchulaufgaben: number;
+  /** Vorrückungsfach; Sport nicht (RSO § 25 Abs. 1). */
+  promotionSubject: boolean;
   /** Ob die Werte aus Stundentafel bzw. RSO § 18 stammen (sonst Platzhalter). */
   hoursFromRso: boolean;
   saFromRso: boolean;
@@ -96,7 +114,7 @@ export interface CourseDefaults {
 export function courseDefaults(subjectName: string, gradeLevel: number, wpf: WpfGroup): CourseDefaults {
   const h = weeklyHoursFor(subjectName, gradeLevel, wpf);
   const sa = plannedSchulaufgabenFor(subjectName, gradeLevel, wpf);
-  return { weeklyHours: h ?? 2, plannedSchulaufgaben: sa ?? 0, hoursFromRso: h !== null, saFromRso: sa !== null };
+  return { weeklyHours: h ?? 2, plannedSchulaufgaben: sa ?? 0, promotionSubject: !isSportName(subjectName), hoursFromRso: h !== null, saFromRso: sa !== null };
 }
 
 /** Ein Kurs lässt sich im Assistenten nur abwählen, solange nichts eingetragen ist. */
@@ -157,9 +175,10 @@ function schoolDay(year: SchoolYear, iso: string, dir: 1 | -1): string {
  * anstehenden Termin. Schreibt kein Logbuch – so bleibt erkennbar, ob schon
  * jemand darin gearbeitet hat.
  */
-export function demoClass(year: SchoolYear, subject: { id: string; name: string }, today: string, now = new Date().toISOString()): SchoolClass {
+export function demoClass(year: SchoolYear, subject: { id: string; name: string; sport?: SportGroup }, today: string, now = new Date().toISOString()): SchoolClass {
   const students: Student[] = DEMO_NAMES.map(([lastName, firstName]) => ({ id: randomId(), lastName, firstName }));
   const def = courseDefaults(subject.name, 8, 'II');
+  if (isSportName(subject.name)) return demoSportClass(year, subject, students, def, today, now);
   const a = (typeId: string, title: string, date: string): Assessment => ({ id: randomId(), typeId, title, date, weight: null, maxPoints: null, gradeKeyId: null, createdAt: now });
   const sa = a('typ-schulaufgabe', '1. Schulaufgabe', schoolDay(year, addDays(today, -21), -1));
   const ex = a('typ-stegreifaufgabe', '1. Stegreifaufgabe', schoolDay(year, addDays(today, -9), -1));
@@ -198,6 +217,69 @@ export function demoClass(year: SchoolYear, subject: { id: string; name: string 
     testModel: false,
     excludedStudentIds: [],
     assessments: [sa, ex, ka],
+    grades,
+    reportGrades: [],
+  };
+  return { v: 1, id: randomId(), yearId: year.id, name: '8x', gradeLevel: 8, wpf: 'II', students, courses: [course], demo: true, createdAt: now };
+}
+
+/**
+ * Beispielklasse im Fach Sport: 75-m-Lauf mit zwei Versuchen (Note aus der ISB-Tabelle),
+ * Basketball nach Technik und Spielfähigkeit und ein anstehender Hochsprung.
+ */
+function demoSportClass(
+  year: SchoolYear,
+  subject: { id: string; sport?: SportGroup },
+  students: Student[],
+  def: CourseDefaults,
+  today: string,
+  now: string,
+): SchoolClass {
+  const group: SportGroup = subject.sport ?? 'm';
+  const lauf = measurePart(disciplineById('sprint75') ?? null, 8, group);
+  const technik = notePart('Technik');
+  const spiel = notePart('Taktik / Spielfähigkeit');
+  const hoch = measurePart(disciplineById('hoch') ?? null, 8, group);
+  const a = (title: string, date: string, sport: SportSpec): Assessment => ({
+    id: randomId(), typeId: 'typ-sport_praktisch', title, date, weight: null, maxPoints: null, gradeKeyId: null, createdAt: now, sport,
+  });
+  const a1 = a('75-m-Lauf', schoolDay(year, addDays(today, -20), -1), { field: 'leichtathletik', parts: [lauf] });
+  const a2 = a('Basketball', schoolDay(year, addDays(today, -6), -1), { field: 'spiele', parts: [technik, spiel] });
+  const a3 = a('Hochsprung', schoolDay(year, addDays(today, 9), 1), { field: 'leichtathletik', parts: [hoch] });
+  const grades: Grade[] = [];
+  const grade = (studentId: string, assessmentId: string, at: string, sport: SportResult): Grade => {
+    const spec = assessmentId === a1.id ? a1.sport! : a2.sport!;
+    return {
+      id: randomId(), studentId, assessmentId, typeId: null, weight: null, title: '',
+      value: sportOutcome(spec, sport, 'mild').value, points: null, status: 'gewertet', comment: '',
+      performedAt: `${at}T09:00:00.000Z`, recordedAt: now, history: [], sport,
+    };
+  };
+  students.forEach((s, i) => {
+    const g = DEMO_GRADES[i % DEMO_GRADES.length];
+    const best = g <= 5 ? lauf.thresholds[g - 1] - 0.1 * ((i % 3) + 1) : lauf.thresholds[4] + 0.6;
+    const t = Math.round(best * 10) / 10;
+    if (i === 4) {
+      // Befreit mit Attest: keine Note.
+      grades.push({ ...grade(s.id, a1.id, a1.date, { parts: {} }), value: null, status: 'befreit', comment: 'Attest', sport: undefined });
+    } else {
+      grades.push(grade(s.id, a1.id, a1.date, { parts: { [lauf.id]: { attempts: [Math.round((t + 0.3) * 10) / 10, t] } } }));
+    }
+    grades.push(
+      grade(s.id, a2.id, a2.date, {
+        parts: { [technik.id]: { value: DEMO_GRADES[(i + 5) % DEMO_GRADES.length] }, [spiel.id]: { value: DEMO_GRADES[(i + 7) % DEMO_GRADES.length] } },
+      }),
+    );
+  });
+  const course: Course = {
+    id: randomId(),
+    subjectId: subject.id,
+    weeklyHours: def.weeklyHours,
+    promotionSubject: false,
+    plannedSchulaufgaben: 0,
+    testModel: false,
+    excludedStudentIds: [],
+    assessments: [a1, a2, a3],
     grades,
     reportGrades: [],
   };

@@ -299,7 +299,7 @@
             <tbody>
               {#each core.types as t (t.id)}
                 <tr class="border-t border-slate-100 dark:border-line-dark {t.archived ? 'opacity-50' : ''}">
-                  <td class="py-1.5 pr-2">{#if t.builtin}{t.name}{:else}<input class="field h-8" bind:value={t.name} onchange={touch} />{/if}</td>
+                  <td class="py-1.5 pr-2">{#if t.builtin}{t.name}{#if t.scope === 'sport'} <span class="ml-1 rounded-full bg-emerald-50 px-1.5 py-px text-[0.625rem] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" title="Nur in Sportkursen; dort werden die übrigen Arten nicht angeboten">Sport</span>{/if}{:else}<input class="field h-8" bind:value={t.name} onchange={touch} />{/if}</td>
                   <td class="pr-2"><input class="field h-8 w-16" bind:value={t.short} onchange={touch} /></td>
                   <td class="pr-2">
                     {#if t.builtin}{t.category === 'gross' ? 'groß' : 'klein'}{:else}

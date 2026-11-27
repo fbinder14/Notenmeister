@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { app } from '../../lib/state/app.svelte';
   import { entriesFor, formatAvg, halfOf, summarize, type Ctx } from '../../lib/domain/grading';
-  import { addSingleGrade, fmtShortDate, fromLocalInput, removeGrade, studentGradeRows, subjectOf, todayIso, typeById } from '../../lib/state/actions';
+  import { addSingleGrade, courseDefaultType, courseTypes, fmtShortDate, fromLocalInput, removeGrade, studentGradeRows, subjectOf, todayIso, typeById } from '../../lib/state/actions';
   import type { GradeValue, SchoolClass, Student } from '../../lib/domain/types';
   import Modal from '../Modal.svelte';
   import Icon from '../Icon.svelte';
@@ -23,7 +22,7 @@
   /** In dieser Sitzung angelegte Noten (zum Hervorheben und Zurücknehmen). */
   let added = $state<string[]>([]);
 
-  const types = $derived(app.core.types.filter((t) => !t.archived && t.category === 'klein'));
+  const types = $derived(picked ? courseTypes(picked.course, 'quick') : []);
 
   const rows = $derived(picked ? studentGradeRows(picked.course, picked.student.id) : []);
   const avg = $derived(picked ? summarize(entriesFor(picked.course, picked.student.id, ctx, 'jahr')).total : null);
@@ -47,6 +46,8 @@
   function pick(h: StudentHit) {
     picked = h;
     added = [];
+    // Zuletzt gewählte Art behalten, sofern sie in diesem Fach angeboten wird (Sport hat eigene Arten).
+    if (!courseTypes(h.course, 'quick').some((t) => t.id === typeId)) typeId = courseDefaultType(h.course, 'quick');
   }
 
   function back() {

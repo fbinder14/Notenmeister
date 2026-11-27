@@ -2,6 +2,7 @@
   import { app } from '../../lib/state/app.svelte';
   import { addCourse, removeCourse, updateCourse } from '../../lib/state/actions';
   import { courseDefaults, courseRemovable } from '../../lib/domain/onboarding';
+  import { isSportSubject, SPORT_GROUP_LABEL } from '../../lib/domain/sport';
   import type { Course, SchoolClass, Subject } from '../../lib/domain/types';
   import Icon from '../../ui/Icon.svelte';
   import { SUBJECT_DOT } from '../../ui/colors';
@@ -17,6 +18,8 @@
   const selClass = $derived(selected ? classes.find((c) => c.id === selected!.classId) : undefined);
   const selCourse = $derived(selClass?.courses.find((k) => k.id === selected!.courseId));
   const selSubject = $derived(selCourse ? subjects.find((s) => s.id === selCourse.subjectId) : undefined);
+  const selSport = $derived(isSportSubject(selSubject));
+  const anySport = $derived(subjects.some((s) => isSportSubject(s)));
   const selDefaults = $derived(selClass && selSubject ? courseDefaults(selSubject.name, selClass.gradeLevel, selClass.wpf) : null);
 
   function toggle(c: SchoolClass, s: Subject) {
@@ -27,7 +30,7 @@
       return;
     }
     const d = courseDefaults(s.name, c.gradeLevel, c.wpf);
-    const course = addCourse(c, s.id, d.weeklyHours, true);
+    const course = addCourse(c, s.id, d.weeklyHours, d.promotionSubject);
     if (course.plannedSchulaufgaben !== d.plannedSchulaufgaben) updateCourse(c, course, { plannedSchulaufgaben: d.plannedSchulaufgaben });
     selected = { classId: c.id, courseId: course.id };
   }
@@ -38,7 +41,7 @@
     selected = null;
   }
 
-  const sa = (k: Course) => (k.testModel ? 'Tests' : k.plannedSchulaufgaben ? `${k.plannedSchulaufgaben} SA` : 'ohne SA');
+  const sa = (k: Course) => (isSportSubject(subjects.find((s) => s.id === k.subjectId)) ? 'Sport' : k.testModel ? 'Tests' : k.plannedSchulaufgaben ? `${k.plannedSchulaufgaben} SA` : 'ohne SA');
   const types = $derived(app.core.types.filter((t) => !t.archived));
   const bigWeight = $derived(types.find((t) => t.kind === 'schulaufgabe')?.weight ?? 2);
   const smallWeight = $derived(types.find((t) => t.kind === 'stegreifaufgabe')?.weight ?? 1);
@@ -118,10 +121,12 @@
             <span class="label">Wochenstunden</span>
             <input class="field" type="number" min="1" max="10" bind:value={selCourse.weeklyHours} onchange={() => app.touch(selClass.id)} />
           </label>
+          {#if !selSport}
           <label>
             <span class="label">Schulaufgaben</span>
             <input class="field" type="number" min="0" max="6" bind:value={selCourse.plannedSchulaufgaben} onchange={() => app.touch(selClass.id)} disabled={selCourse.testModel} />
           </label>
+          {/if}
           <label class="col-span-2 flex items-center gap-2.5 self-end pb-2 text-[0.8125rem]">
             <input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={selCourse.promotionSubject} onchange={() => app.touch(selClass.id)} /> Vorrückungsfach
           </label>
@@ -134,10 +139,14 @@
         {:else if selClass.gradeLevel >= 7 && !selClass.wpf}
           <p class="mt-2 text-[0.75rem] text-amber-700 dark:text-amber-300">Tipp: Wähle im Schritt „Klassen“ die Wahlpflichtfächergruppe, dann schlägt der Notenmeister Stunden und Schulaufgaben vor.</p>
         {/if}
+        {#if selSport}
+          <p class="mt-3 text-[0.75rem] text-slate-500">Sport ohne Schulaufgaben, mit praktischen Leistungsnachweisen{selSubject.sport ? `; Wertungstabelle ${SPORT_GROUP_LABEL[selSubject.sport]}` : ''}. Zeiten und Weiten rechnet der Notenmeister mit den ISB-Tabellen in Noten um.</p>
+        {:else}
         <label class="mt-3 flex items-start gap-2.5 text-[0.8125rem]">
           <input type="checkbox" class="mt-0.5 h-4 w-4 accent-brand-600" checked={selCourse.testModel} onchange={(e) => updateCourse(selClass, selCourse, { testModel: (e.target as HTMLInputElement).checked })} />
           <span>Schulaufgaben und Stegreifaufgaben durch angesagte Tests ersetzt <span class="text-slate-500">(RSO § 18 Abs. 3)</span></span>
         </label>
+        {/if}
         <div class="mt-3 flex justify-end">
           {#if courseRemovable(selCourse)}
             <button type="button" class="btn btn-ghost h-8 text-rose-600" onclick={() => remove(selClass, selCourse)}><Icon name="trash" size={14} /> Unterricht entfernen</button>
@@ -153,6 +162,7 @@
       <span>
         Für alle Fächer gilt: große Leistungsnachweise zählen <b>{bigWeight}-fach</b>, kleine <b>{smallWeight}-fach</b> (RSO § 23), Notenschlüssel
         <b>„{keyName}“</b>, bei x,50 wird zur {app.core.settings.rounding === 'mild' ? 'besseren' : 'schlechteren'} Note gerundet. Das lässt sich in den Einstellungen anpassen.
+        {#if anySport}Im Sport gibt es keine Schulaufgaben: Dort bewertest du praktische Leistungsnachweise mit Messwerten (ISB-Tabellen), Teilnoten oder dem Leistungsfortschritt.{/if}
       </span>
     </div>
   </div>

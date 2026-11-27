@@ -3,6 +3,7 @@ import { plannedSchulaufgabenFor, SUBJECT_COLORS } from '../domain/defaults';
 import { gradeFromPoints } from '../domain/gradeKey';
 import { appendLog } from '../domain/logbook';
 import { demoClass } from '../domain/onboarding';
+import { describeOutcome, hasSportInput, isSportCourse, preferredTypeId, sportGroupFromName, sportOutcome, typesFor, type TypePurpose } from '../domain/sport';
 import type {
   Assessment,
   DeletedGrade,
@@ -21,6 +22,8 @@ import type {
   SchoolClass,
   Student,
   Subject,
+  SportGroup,
+  SportResult,
   WpfGroup,
 } from '../domain/types';
 import { app } from './app.svelte';
@@ -52,6 +55,7 @@ export const STATUS_LABEL: Record<GradeStatus, string> = {
   verweigert: 'Leistung verweigert (Note 6)',
   unterschleif: 'Unterschleif (Note 6)',
   nicht_gewertet: 'Nicht gewertet',
+  befreit: 'Befreit (Attest)',
 };
 
 /**
@@ -60,6 +64,8 @@ export const STATUS_LABEL: Record<GradeStatus, string> = {
  * unangekündigte wie Stegreifaufgaben nein.
  */
 export function allowsMakeup(type: AssessmentType | undefined): boolean {
+  // Sport: versäumte praktische Nachweise lassen sich nachholen (RSO § 22 Abs. 1, „kann“).
+  if (type?.scope === 'sport') return type.kind !== 'sport_einsatz';
   return !!type && type.announced && type.kind !== 'stegreifaufgabe';
 }
 
@@ -73,7 +79,97 @@ export const STATUS_SHORT: Record<GradeStatus, string> = {
   verweigert: 'vw',
   unterschleif: 'U',
   nicht_gewertet: '–',
+  befreit: 'bef',
 };
+
+// ---------- Sport ----------
+
+/** Ist der Unterricht ein Sportkurs (Fach Sport)? */
+export function isSport(course: Course | undefined): boolean {
+  return !!course && isSportCourse(course, app.core.subjects);
+}
+
+/** Angebotene Arten für einen Kurs (Sport: nur Sport-Arten, sonst ohne sie). */
+export function courseTypes(course: Course, purpose: TypePurpose): AssessmentType[] {
+  return typesFor(app.core.types, isSport(course), purpose);
+}
+
+export function courseDefaultType(course: Course, purpose: TypePurpose | 'observation'): string {
+  return preferredTypeId(courseTypes(course, purpose === 'observation' ? 'single' : purpose), course, isSport(course), purpose);
+}
+
+/** Wertungstabelle (Jungen/Mädchen) des Sportfachs eines Kurses. */
+export function sportGroupOf(course: Course): SportGroup | undefined {
+  return subjectOf(course)?.sport;
+}
+
+/**
+ * Speichert Messwerte und Teilnoten eines Sport-Nachweises; die Note wird daraus
+ * berechnet. Ein Sonderstatus (befreit, Nachtermin …) bleibt dabei erhalten.
+ */
+export function setSportResult(cls: SchoolClass, course: Course, assessment: Assessment, studentId: string, result: SportResult) {
+  if (!assessment.sport) return;
+  const g = course.grades.find((x) => x.assessmentId === assessment.id && x.studentId === studentId);
+  const clean: SportResult = clone(result);
+  const input = hasSportInput(clean);
+  if (!input && (!g || (g.status === 'gewertet' && !g.comment))) {
+    if (g) setAssessmentGrade(cls, course, assessment, studentId, null);
+    return;
+  }
+  const value = sportOutcome(assessment.sport, clean, app.core.settings.rounding).value;
+  if (!g) {
+    const t = now();
+    course.grades.push({
+      id: randomId(),
+      studentId,
+      assessmentId: assessment.id,
+      typeId: null,
+      weight: null,
+      title: '',
+      value,
+      points: null,
+      status: 'gewertet',
+      comment: '',
+      performedAt: t,
+      recordedAt: t,
+      history: [],
+      sport: clean,
+    });
+    if (value !== null) log(cls, { kind: 'grade', courseId: course.id, studentId, assessmentId: assessment.id, value, status: 'gewertet' });
+    app.touch(cls.id);
+    return;
+  }
+  // Mit Eingaben wird die Leistung gewertet (auch nach Nachtermin oder Befreiung); Note 6 wegen Versäumnis bleibt.
+  if (input && !SIX_STATUSES.includes(g.status)) {
+    if (g.value !== value || g.status !== 'gewertet') {
+      if (value !== null || g.value !== null) {
+        log(cls, { kind: 'grade', changed: g.value !== null, courseId: course.id, studentId, assessmentId: assessment.id, value, prev: g.value, status: 'gewertet' });
+      }
+      recordChange(g, { value, status: 'gewertet', ...(g.comment === ABSENT_COMMENT ? { comment: '' } : {}) });
+    }
+  } else if (!input && g.status === 'gewertet' && g.value !== null) {
+    recordChange(g, { value: null });
+  }
+  g.sport = clean;
+  app.touch(cls.id);
+}
+
+/** Messwerte und Teilnoten einer Sport-Note in Kurzform, z. B. „75-m-Lauf 11,8 s · Technik 2“. */
+export function sportDetail(g: Grade, a: Assessment | undefined): string {
+  if (!a?.sport || !g.sport) return '';
+  return sportOutcome(a.sport, g.sport, app.core.settings.rounding).parts.map(describeOutcome).filter(Boolean).join(' · ');
+}
+
+/** Berechnet alle Noten eines Sport-Nachweises neu (nach geänderten Grenzen oder Teilen). */
+export function recomputeSport(cls: SchoolClass, course: Course, assessment: Assessment) {
+  if (!assessment.sport) return;
+  for (const g of course.grades) {
+    if (g.assessmentId !== assessment.id || !g.sport || g.status !== 'gewertet') continue;
+    const v = sportOutcome(assessment.sport, g.sport, app.core.settings.rounding).value;
+    if (v !== g.value) recordChange(g, { value: v });
+  }
+  app.touch(cls.id);
+}
 
 // ---------- Nachschlagen ----------
 
@@ -123,6 +219,8 @@ export function addSubject(name: string, short: string): Subject {
   const used = new Set(app.core.subjects.map((s) => s.color));
   const color = SUBJECT_COLORS.find((c) => !used.has(c)) ?? SUBJECT_COLORS[app.core.subjects.length % SUBJECT_COLORS.length];
   const s: Subject = { id: randomId(), name: name.trim(), short: short.trim() || name.trim().slice(0, 3), color };
+  const group = sportGroupFromName(s.name);
+  if (group) s.sport = group;
   app.core.subjects.push(s);
   app.touch();
   // Den reaktiven Eintrag zurückgeben, nicht das Rohobjekt – sonst gehen spätere Änderungen verloren.
@@ -266,7 +364,7 @@ export function removeNote(cls: SchoolClass, id: string) {
 export function startObservation(cls: SchoolClass, course: Course, studentId: string): ObservationPhase {
   const running = course.observations?.find((p) => p.studentId === studentId && !p.closedAt);
   if (running) return running;
-  const p: ObservationPhase = { id: randomId(), studentId, typeId: 'typ-unterrichtsbeitrag', startedAt: now(), entries: [] };
+  const p: ObservationPhase = { id: randomId(), studentId, typeId: courseDefaultType(course, 'observation'), startedAt: now(), entries: [] };
   course.observations ??= [];
   course.observations.push(p);
   app.touch(cls.id);
@@ -392,6 +490,8 @@ export function updateAssessment(cls: SchoolClass, course: Course, id: string, p
       if (v !== g.value) recordChange(g, { value: v });
     }
   }
+  // Sport: Noten aus Messwerten und Teilnoten mit den neuen Grenzen neu berechnen.
+  if (a.sport) recomputeSport(cls, course, a);
   app.touch(cls.id);
 }
 
@@ -510,7 +610,7 @@ function normalize(input: GradeInput): Required<Omit<GradeInput, 'performedAt' |
   const status = input.status ?? 'gewertet';
   let value = input.value;
   if (SIX_STATUSES.includes(status)) value = 6;
-  if (status === 'nachtermin') value = null;
+  if (status === 'nachtermin' || status === 'befreit') value = null;
   return { value, points: input.points ?? null, status, comment: input.comment ?? '' };
 }
 

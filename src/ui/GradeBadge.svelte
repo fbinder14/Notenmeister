@@ -16,6 +16,8 @@
 
 {#if status === 'nachtermin'}
   <span {title} class="inline-flex items-center justify-center px-1.5 font-semibold ring-1 ring-inset {dims[size]} bg-violet-100 text-violet-700 ring-violet-300/60 dark:bg-violet-500/15 dark:text-violet-300">NT</span>
+{:else if status === 'befreit'}
+  <span title={title || 'Befreit (Attest)'} class="inline-flex items-center justify-center px-1.5 text-[0.6875rem] font-semibold ring-1 ring-inset {dims[size]} bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/30">bef</span>
 {:else if status === 'nicht_gewertet'}
   <span {title} class="inline-flex items-center justify-center px-1.5 font-semibold text-slate-400 line-through ring-1 ring-inset ring-slate-200 {dims[size]} dark:ring-line-dark">{value ?? '–'}</span>
 {:else if value}

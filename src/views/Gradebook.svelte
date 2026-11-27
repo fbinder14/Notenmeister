@@ -10,7 +10,9 @@
     findCourse,
     fmtShortDate,
     gradeKeyById,
+    isSport,
     setAssessmentGrade,
+    STATUS_LABEL,
     startObservation,
     sortedAssessments,
     subjectOf,
@@ -26,6 +28,7 @@
   import Segmented from '../ui/Segmented.svelte';
   import GradeBadge from '../ui/GradeBadge.svelte';
   import GradeCell from '../ui/GradeCell.svelte';
+  import { describeOutcome, sportOutcome } from '../lib/domain/sport';
   import WarningList from '../ui/WarningList.svelte';
   import ObservationBadge from '../ui/ObservationBadge.svelte';
   import GradeTrash from '../ui/GradeTrash.svelte';
@@ -38,6 +41,7 @@
 
   const cls = $derived(findClass(classId));
   const course = $derived(findCourse(cls, courseId));
+  const sport = $derived(isSport(course));
   const year = $derived(cls ? yearOf(cls) : undefined);
   const subject = $derived(course ? subjectOf(course) : undefined);
 
@@ -156,7 +160,7 @@
       <button class="btn btn-ghost" onclick={() => (courseOpen = true)} title="Unterricht bearbeiten"><Icon name="settings" size={15} /></button>
       <a class="btn btn-ghost" href={href.print(cls.id, course.id)}><Icon name="print" size={15} /> Drucken</a>
       <a class="btn btn-soft" href={href.report(cls.id, course.id)}><Icon name="award" size={15} /> Zeugnisnoten</a>
-      <a class="btn btn-soft" href={href.quick(cls.id, course.id)}><Icon name="zap" size={15} /> Mündliche Noten</a>
+      <a class="btn btn-soft" href={href.quick(cls.id, course.id)}><Icon name="zap" size={15} /> {sport ? 'Einzelnoten' : 'Mündliche Noten'}</a>
       <button class="btn btn-primary" onclick={() => (assessOpen = true)}><Icon name="plus" size={15} /> Leistungsnachweis</button>
     {/snippet}
     <div class="flex items-center justify-between gap-4">
@@ -217,6 +221,23 @@
                 {#each assessments as a, ci (a.id)}
                   {@const g = gradeMap.get(`${a.id}|${s.id}`)}
                   <td class="border-b border-l border-slate-100 px-1.5 py-1 transition group-hover:bg-brand-50/40 dark:border-line-dark dark:group-hover:bg-white/[0.02]">
+                    {#if a.sport}
+                      {@const o = g?.sport ? sportOutcome(a.sport, g.sport, app.core.settings.rounding) : null}
+                      <a
+                        href={href.assessment(cls.id, course.id, a.id)}
+                        data-cell="{ri}-{ci}"
+                        class="mx-auto flex h-8 w-full items-center justify-center rounded-lg outline-none ring-1 ring-inset ring-transparent transition hover:bg-slate-900/5 focus:ring-brand-400 dark:hover:bg-white/5"
+                        title={g && g.status !== 'gewertet' ? g.comment || STATUS_LABEL[g.status] : o ? o.parts.map(describeOutcome).filter(Boolean).join(' · ') || 'Messwerte erfassen' : 'Messwerte erfassen'}
+                      >
+                        {#if g && (g.value || g.status !== 'gewertet')}
+                          <GradeBadge value={g.value} status={g.status} />
+                        {:else if g?.sport}
+                          <span class="text-[0.6875rem] text-amber-600">offen</span>
+                        {:else}
+                          <span class="text-slate-300 dark:text-slate-600">·</span>
+                        {/if}
+                      </a>
+                    {:else}
                     <GradeCell
                       grade={g}
                       assessment={a}
@@ -227,6 +248,7 @@
                       oncommit={(v) => setAssessmentGrade(cls, course, a, s.id, !v.status && v.value === null && v.points === null ? null : { comment: g?.comment ?? '', ...v })}
                       onopen={() => (gradeDlg = { student: s, grade: g ?? null, a })}
                     />
+                    {/if}
                   </td>
                 {/each}
                 <td class="border-b border-l border-slate-100 px-3 py-1 transition group-hover:bg-brand-50/40 dark:border-line-dark dark:group-hover:bg-white/[0.02]">
@@ -312,7 +334,7 @@
 
       {#if !assessments.length}
         <div class="mt-6">
-          <Empty icon="list" title="Noch keine Leistungsnachweise in diesem Zeitraum" text="Lege eine Schulaufgabe, Kurzarbeit oder Stegreifaufgabe an. Mündliche Noten trägst du über „Mündliche Noten“ oder das Plus in der Spalte Einzelnoten ein.">
+          <Empty icon="list" title="Noch keine Leistungsnachweise in diesem Zeitraum" text={sport ? 'Lege einen sportpraktischen Leistungsnachweis an, z. B. einen Lauf mit Zeiten aus der ISB-Tabelle oder ein Spiel mit Teilnoten. Einzelnoten (z. B. Einsatz und Fairness) trägst du über „Einzelnoten“ oder das Plus in der Spalte Einzelnoten ein.' : 'Lege eine Schulaufgabe, Kurzarbeit oder Stegreifaufgabe an. Mündliche Noten trägst du über „Mündliche Noten“ oder das Plus in der Spalte Einzelnoten ein.'}>
             <button class="btn btn-primary" onclick={() => (assessOpen = true)}><Icon name="plus" size={15} /> Leistungsnachweis anlegen</button>
           </Empty>
         </div>

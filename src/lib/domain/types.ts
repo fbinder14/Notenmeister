@@ -32,7 +32,12 @@ export interface Subject {
   name: string;
   short: string;
   color: string; // Schlüssel aus SUBJECT_COLORS
+  /** Nur Sport: Wertungstabelle Jungen (m) oder Mädchen (w); fehlt = ohne Tabellenvorgabe. */
+  sport?: SportGroup;
 }
+
+/** Wertungstabelle im Sport (ISB-Orientierungstabellen getrennt nach Mädchen und Jungen). */
+export type SportGroup = 'm' | 'w';
 
 /** Feste Kennungen der Leistungsnachweisarten nach RSO §§ 17–19. */
 export type AssessmentKind =
@@ -47,6 +52,9 @@ export type AssessmentKind =
   | 'unterrichtsbeitrag'
   | 'praktisch'
   | 'gleichwertig'
+  | 'sport_praktisch'
+  | 'sport_einsatz'
+  | 'sport_theorie'
   | 'eigene';
 
 export type Category = 'gross' | 'klein';
@@ -66,6 +74,8 @@ export interface AssessmentType {
   countsForDayLimit: boolean;
   builtin: boolean;
   archived?: boolean;
+  /** Nur in Sportkursen angeboten; fehlt = in allen anderen Fächern. */
+  scope?: 'sport';
 }
 
 /** Notenschlüssel: Mindestprozent für die Noten 1 bis 5; darunter Note 6. */
@@ -128,7 +138,8 @@ export type GradeStatus =
   | 'versaeumt' // unentschuldigt versäumt → Note 6 (RSO § 21 Abs. 4)
   | 'verweigert' // Leistung verweigert → Note 6 (RSO § 21 Abs. 4)
   | 'unterschleif' // Unterschleif → Note 6 möglich (RSO § 21 Abs. 2)
-  | 'nicht_gewertet';
+  | 'nicht_gewertet'
+  | 'befreit'; // Sport: vom Unterricht befreit (Attest) – keine Note, ggf. Zeugnisbemerkung (RSO § 31 Abs. 6)
 
 export interface GradeChange {
   at: string; // ISO-Zeitpunkt der Änderung
@@ -178,6 +189,63 @@ export interface Grade {
   /** Zeitpunkt der ersten Erfassung (automatisch, unveränderlich). */
   recordedAt: string;
   history: GradeChange[];
+  /** Nur bei Sport-Nachweisen: Messwerte und Teilnoten, aus denen `value` berechnet wird. */
+  sport?: SportResult;
+}
+
+// ---------- Sport ----------
+
+/** Handlungsfelder und Lernbereiche nach LehrplanPLUS Sport (Realschule). */
+export type SportField = 'leichtathletik' | 'schwimmen' | 'spiele' | 'turnen' | 'gymnastik' | 'fitness' | 'sonstiges';
+
+/** Einheit eines Messwerts: Sekunden, Meter oder Anzahl (Wiederholungen, Punkte). */
+export type SportUnit = 's' | 'm' | 'n';
+
+/** Fünf Grenzwerte für die Noten 1 bis 5; schlechter als der fünfte ergibt Note 6. */
+export type SportThresholds = [number, number, number, number, number];
+
+interface SportPartBase {
+  id: ID;
+  label: string;
+  /** Anteil an der Note des Nachweises (relativ zu den übrigen Teilen). */
+  weight: number;
+}
+
+/** Teilnote, die direkt vergeben wird (z. B. Technik, Spielfähigkeit). */
+export interface SportPartNote extends SportPartBase {
+  kind: 'note';
+}
+
+/** Messwert mit Wertungstabelle (z. B. 50-m-Lauf, Weitsprung). */
+export interface SportPartMeasure extends SportPartBase {
+  kind: 'messung' | 'fortschritt';
+  /** Kennung der Disziplin aus den ISB-Tabellen, leer bei eigener Messung. */
+  discipline?: string;
+  unit: SportUnit;
+  /** Kleinere Werte sind besser (Zeiten) oder größere (Weiten, Höhen, Anzahl). */
+  better: 'low' | 'high';
+  thresholds: SportThresholds;
+  /** Anzahl der Versuche; gewertet wird der beste. */
+  attempts: number;
+}
+
+export type SportPart = SportPartNote | SportPartMeasure;
+
+/** Bewertungsaufbau eines Sport-Nachweises. */
+export interface SportSpec {
+  field: SportField;
+  parts: SportPart[];
+}
+
+/** Erfasste Werte je Teil. Bei `fortschritt`: `entry` = Eingangstest, `attempts` = Ausgangstest. */
+export interface SportPartResult {
+  value?: GradeValue;
+  attempts?: Array<number | null>;
+  entry?: Array<number | null>;
+}
+
+export interface SportResult {
+  parts: Record<ID, SportPartResult>;
 }
 
 export interface Assessment {
@@ -190,6 +258,8 @@ export interface Assessment {
   maxPoints: number | null;
   gradeKeyId: ID | null;
   createdAt: string;
+  /** Nur Sport: Messwerte und Teilnoten; die Note wird daraus berechnet. */
+  sport?: SportSpec;
 }
 
 export type ReportTerm = 'zwischen' | 'jahr';

@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import Modal from '../ui/Modal.svelte';
   import { app } from '../lib/state/app.svelte';
-  import { addAssessment, removeAssessment, todayIso, updateAssessment } from '../lib/state/actions';
+  import { addAssessment, courseDefaultType, courseTypes, isSport, removeAssessment, sportGroupOf, todayIso, updateAssessment } from '../lib/state/actions';
+  import { disciplinesFor, templateSpec, validThresholds } from '../lib/domain/sport';
+  import SportSpecEditor from '../ui/SportSpecEditor.svelte';
   import { pointRanges } from '../lib/domain/gradeKey';
   import { go, href } from '../lib/state/router.svelte';
   import { toast } from '../lib/state/toast.svelte';
-  import type { Assessment, Course, SchoolClass } from '../lib/domain/types';
+  import type { Assessment, Course, SchoolClass, SportSpec } from '../lib/domain/types';
   import { GRADE_CLASS } from '../ui/colors';
 
   let {
@@ -23,10 +26,18 @@
   let maxPoints = $state<number | null>(null);
   let gradeKeyId = $state('');
   let confirmDelete = $state(false);
-
-  const types = $derived(
-    app.core.types.filter((t) => !t.archived && (t.mode === 'schriftlich' || t.kind === 'praktisch' || t.kind === 'referat' || t.kind === 'gleichwertig')),
+  /** Sport: Bewertung mit Messwerten und Teilnoten (sonst einfache Note 1–6). */
+  let useSport = $state(false);
+  let spec = $state<SportSpec>({ field: 'leichtathletik', parts: [] });
+  let specKey = $state(0);
+  let titleTouched = $state(false);
+  const sport = $derived(isSport(course));
+  const group = $derived(sportGroupOf(course));
+  const specOk = $derived(
+    !useSport || (spec.parts.length > 0 && spec.parts.every((p) => p.kind === 'note' || validThresholds(p.thresholds, p.better)) && spec.parts.some((p) => p.weight > 0)),
   );
+
+  const types = $derived(courseTypes(course, 'assessment'));
   const type = $derived(app.core.types.find((t) => t.id === typeId));
   const key = $derived(app.core.gradeKeys.find((k) => k.id === gradeKeyId) ?? app.core.gradeKeys[0]);
   const ranges = $derived(usePoints && maxPoints && maxPoints > 0 ? pointRanges(key, maxPoints) : []);
@@ -35,14 +46,24 @@
   $effect(() => {
     if (!open) return;
     confirmDelete = false;
-    const preferred = course.testModel ? 'typ-angesagter_test' : 'typ-schulaufgabe';
-    typeId = assessment?.typeId ?? (types.some((t) => t.id === preferred) ? preferred : types[0]?.id);
+    typeId = assessment?.typeId ?? courseDefaultType(course, 'assessment');
     title = assessment?.title ?? '';
     date = assessment?.date ?? todayIso();
     weight = assessment?.weight ?? null;
     usePoints = !!assessment?.maxPoints;
     maxPoints = assessment?.maxPoints ?? null;
     gradeKeyId = assessment?.gradeKeyId ?? app.core.settings.defaultGradeKeyId;
+    titleTouched = !!assessment;
+    // Nur lokale Werte lesen: geschriebene Zustände hier zu lesen, würde den Effekt erneut auslösen.
+    const withSport = assessment ? !!assessment.sport : isSport(course);
+    const next = assessment?.sport
+      ? $state.snapshot(assessment.sport)
+      : templateSpec('leistung', 'leichtathletik', disciplinesFor('leichtathletik').find((d) => d.levels[cls.gradeLevel]) ?? null, cls.gradeLevel, sportGroupOf(course));
+    useSport = withSport;
+    spec = next;
+    untrack(() => specKey++);
+    const m = next.parts.find((p) => p.kind !== 'note');
+    if (!assessment && withSport && m?.label) title = m.label;
   });
 
   function nextTitle(): string {
@@ -61,7 +82,12 @@
       weight: weight === null || Number.isNaN(weight) || weight === type.weight ? null : weight,
       maxPoints: usePoints && maxPoints ? maxPoints : null,
       gradeKeyId: usePoints ? gradeKeyId : null,
+      sport: sport && useSport ? $state.snapshot(spec) : undefined,
     };
+    if (data.sport) {
+      data.maxPoints = null;
+      data.gradeKeyId = null;
+    }
     if (assessment) {
       updateAssessment(cls, course, assessment.id, data);
       toast.success('Leistungsnachweis gespeichert.');
@@ -93,7 +119,7 @@
       <label><span class="label">Datum</span><input class="field" type="date" bind:value={date} /></label>
     </div>
     <div class="grid grid-cols-[1fr_8rem] gap-3">
-      <label><span class="label">Titel</span><input class="field" bind:value={title} placeholder={nextTitle()} /></label>
+      <label><span class="label">Titel</span><input class="field" bind:value={title} placeholder={nextTitle()} oninput={() => (titleTouched = true)} /></label>
       <label>
         <span class="label">Gewicht</span>
         <input class="field" type="number" min="0" step="0.5" bind:value={weight} placeholder={String(type?.weight ?? 1)} />
@@ -103,9 +129,21 @@
       <p class="-mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[0.75rem] text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">Laut RSO § 23 Abs. 2 Satz 3 haben Schulaufgaben und angesagte Tests doppeltes Gewicht.</p>
     {/if}
 
+    {#if sport}
+      <label class="flex items-center gap-2.5 text-[0.8125rem]">
+        <input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={useSport} disabled={hasGrades && !!assessment?.sport} />
+        Mit Messwerten und Teilnoten bewerten <span class="text-slate-500">(sonst Note 1–6 direkt)</span>
+      </label>
+      {#if useSport}
+        {#key specKey}
+          <SportSpecEditor bind:spec gradeLevel={cls.gradeLevel} {group} locked={hasGrades && !!assessment?.sport} ontitle={(t) => { if (!titleTouched) title = t; }} />
+        {/key}
+      {/if}
+    {:else}
     <label class="flex items-center gap-2.5 text-[0.8125rem]"><input type="checkbox" class="h-4 w-4 accent-brand-600" bind:checked={usePoints} /> Mit Punkten und Notenschlüssel bewerten</label>
+    {/if}
 
-    {#if usePoints}
+    {#if usePoints && !sport}
       <div class="grid grid-cols-2 gap-3">
         <label><span class="label">Höchstpunktzahl</span><input class="field" type="number" min="1" step="0.5" bind:value={maxPoints} /></label>
         <label>
@@ -139,6 +177,6 @@
       {/if}
     {/if}
     <button type="button" class="btn btn-ghost" onclick={() => (open = false)}>Abbrechen</button>
-    <button form="assess-form" class="btn btn-primary" disabled={!typeId || (usePoints && !(maxPoints && maxPoints > 0))}>{assessment ? 'Speichern' : 'Anlegen und Noten erfassen'}</button>
+    <button form="assess-form" class="btn btn-primary" disabled={!typeId || (!sport && usePoints && !(maxPoints && maxPoints > 0)) || (sport && !specOk)}>{assessment ? 'Speichern' : 'Anlegen und Noten erfassen'}</button>
   {/snippet}
 </Modal>

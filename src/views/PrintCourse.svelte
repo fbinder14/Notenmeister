@@ -1,7 +1,7 @@
 <script lang="ts">
   import { app } from '../lib/state/app.svelte';
   import { entriesFor, formatAvg, summarize, type Ctx } from '../lib/domain/grading';
-  import { courseStudents, findClass, findCourse, fmtDate, fmtShortDate, sortedAssessments, STATUS_SHORT, subjectOf, typeById, yearOf } from '../lib/state/actions';
+  import { courseStudents, findClass, findCourse, fmtDate, fmtShortDate, sortedAssessments, sportDetail, STATUS_SHORT, subjectOf, typeById, yearOf } from '../lib/state/actions';
   import { href } from '../lib/state/router.svelte';
   import type { Period } from '../lib/domain/types';
   import PageHeader from '../ui/PageHeader.svelte';
@@ -110,7 +110,7 @@
                     <td class="border border-slate-300 px-2 py-0.5">{e.assessment ? e.assessment.title : `${e.type?.name ?? ''}${e.grade.title ? ` · ${e.grade.title}` : ''}`}</td>
                     <td class="border border-slate-300 px-2 py-0.5 text-center">{e.weight}</td>
                     <td class="border border-slate-300 px-2 py-0.5 text-center font-semibold">{e.value}{STATUS_SHORT[e.grade.status] ? ` ${STATUS_SHORT[e.grade.status]}` : ''}</td>
-                    <td class="border border-slate-300 px-2 py-0.5">{e.grade.comment}</td>
+                    <td class="border border-slate-300 px-2 py-0.5">{[sportDetail(e.grade, e.assessment), e.grade.comment].filter(Boolean).join(' · ')}</td>
                   </tr>
                 {:else}
                   <tr><td colspan="5" class="border border-slate-300 px-2 py-2 text-slate-500">Keine Noten.</td></tr>

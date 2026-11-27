@@ -52,7 +52,7 @@ describe('Eingaben erkennen', () => {
   });
 
   it('belegt Unterricht nach Stundentafel und RSO vor', () => {
-    expect(courseDefaults('Betriebswirtschaftslehre/Rechnungswesen', 8, 'II')).toEqual({ weeklyHours: 3, plannedSchulaufgaben: 3, hoursFromRso: true, saFromRso: true });
+    expect(courseDefaults('Betriebswirtschaftslehre/Rechnungswesen', 8, 'II')).toEqual({ weeklyHours: 3, plannedSchulaufgaben: 3, promotionSubject: true, hoursFromRso: true, saFromRso: true });
     expect(courseDefaults('Mathematik', 5, '')).toMatchObject({ weeklyHours: 5, plannedSchulaufgaben: 4 });
     expect(courseDefaults('Informationstechnologie', 8, 'I')).toMatchObject({ hoursFromRso: false, saFromRso: false });
   });
